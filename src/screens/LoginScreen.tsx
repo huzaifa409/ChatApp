@@ -15,6 +15,8 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
+import  BASE_URL from '../url/BaseUrl' 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
 
@@ -23,7 +25,7 @@ const webNoOutline =
 
 type LoginMethod = 'xid' | 'name';
 
-const API_BASE_URL = 'http://192.168.0.158:3000';
+
 
 // Formats raw digits into "123 345 321" style for display
 const formatXid = (digits: string) => {
@@ -59,7 +61,7 @@ function LoginScreen({ navigation }: LoginScreenProps): React.JSX.Element {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier, pin }),
@@ -71,6 +73,9 @@ function LoginScreen({ navigation }: LoginScreenProps): React.JSX.Element {
         Alert.alert('Login failed', data.error || 'Something went wrong.');
         return;
       }
+
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      await AsyncStorage.setItem('hasUsedApp', 'true');
 
       navigation.navigate('Home', { user: data.user });
 

@@ -15,11 +15,13 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
+import BASE_URL from '../url/BaseUrl';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const webNoOutline =
   Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {};
 
-const API_BASE_URL = 'http://192.168.0.215:3000';
+
 
 type RegisterScreenProps = StackScreenProps<RootStackParamList, 'Register'>;
 
@@ -42,7 +44,7 @@ function RegisterScreen({ navigation }: RegisterScreenProps): React.JSX.Element 
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), pin }),
@@ -56,9 +58,11 @@ function RegisterScreen({ navigation }: RegisterScreenProps): React.JSX.Element 
       }
 
       
-      navigation.navigate('RegisterSuccess', { name: name.trim(), xid: data.xid });
+     const userData = { name: name.trim(), xid: data.xid };
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await AsyncStorage.setItem('hasUsedApp', 'true');
 
-      
+      navigation.navigate('Home', { user: userData });
 
       setName('');
       setPin('');
@@ -181,11 +185,24 @@ function RegisterScreen({ navigation }: RegisterScreenProps): React.JSX.Element 
               </>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.7}
+            style={styles.loginLinkRow}
+            disabled={loading}
+          >
+            <Text style={styles.loginLinkText}>
+              Already have an account?{' '}
+              <Text style={styles.loginLinkAccent}>Login →</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </ImageBackground>
   );
 }
+       
 
 const styles = StyleSheet.create({
   background: {
@@ -303,6 +320,18 @@ const styles = StyleSheet.create({
   },
   buttonIcon: {
     marginLeft: 8,
+  },
+  loginLinkRow: {
+    marginTop: 20,
+  },
+  loginLinkText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  loginLinkAccent: {
+    color: '#ffffff',
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
 });
 

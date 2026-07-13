@@ -1480,6 +1480,10 @@ PODS:
     - React-logger (= 0.78.6)
     - React-perflogger (= 0.78.6)
     - React-utils (= 0.78.6)
+  - RNCAsyncStorage (1.23.1):
+    - React-Core
+  - RNCClipboard (1.16.3):
+    - React-Core
   - RNGestureHandler (2.16.2):
     - DoubleConversion
     - glog
@@ -1570,6 +1574,8 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native-macos/ReactCommon`)
+  - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - SocketRocket (from `../node_modules/react-native-macos/third-party-podspecs/SocketRocket.podspec`)
   - Yoga (from `../node_modules/react-native-macos/ReactCommon/yoga`)
@@ -1701,6 +1707,10 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native-macos/ReactCommon"
+  RNCAsyncStorage:
+    :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNCClipboard:
+    :path: "../node_modules/@react-native-clipboard/clipboard"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   SocketRocket:
@@ -1772,6 +1782,8 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 3a460ab76f1149df99ed324bb1c764b76de7a730
   ReactCodegen: 4fdcda55518b6fbc14e919d871a2d38856dcd469
   ReactCommon: 3d985abe5510d5d3955a3a60b4dd9ad2dbe309dc
+  RNCAsyncStorage: 826b603ae9c0f88b5ac4e956801f755109fa4d5c
+  RNCClipboard: dfeb43751adff21e588657b5b6c888c72f3aa68e
   RNGestureHandler: 43b36fd7d683d2f7501c7efff86d9bed9af74ba9
   SocketRocket: 03f7111df1a343b162bf5b06ead333be808e1e0a
   Yoga: 187db0b2a37012c01dac36afb886a29b92bfd943
