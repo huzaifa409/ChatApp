@@ -23,7 +23,7 @@ interface MediaViewerModalProps {
 
 
 
-const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , currentIndex , onPrevious , onNext , onClose , onSelectIndex,}) => {
+const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , currentIndex , onPrevious , onNext , onClose , onSelectIndex}) => {
 
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -79,9 +79,12 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , cu
 
   return (
     <View style={styles.overlay}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Icon name="x" size={20} color="#ffffff" />
-      </TouchableOpacity>
+      {/* Top toolbar */}
+      <View style={styles.toolbar}>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Icon name="x" size={20} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
 
       {hasMultiple && (
         <TouchableOpacity style={styles.arrowLeft} onPress={onPrevious}>
@@ -161,22 +164,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgb(10, 8, 16)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2000,
   },
-  closeButton: {
+  toolbar: {
     position: 'absolute',
-    top: 70,
-    right: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 2010,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  closeButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2010,
   },
   arrowLeft: {
     position: 'absolute',
@@ -209,6 +221,7 @@ const styles = StyleSheet.create({
     height: '78%',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: -40,
   },
   video: {
     width: '100%',
@@ -254,9 +267,9 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  thumbnailStrip: {
+ thumbnailStrip: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 16,
     left: 0,
     right: 0,
     maxHeight: 64,

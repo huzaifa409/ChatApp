@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -15,15 +15,15 @@ import Icon from 'react-native-vector-icons/Feather';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
 import Header, { AttachmentType } from '../components/Header';
-import MediaViewerModal, { SelectedFile } from '../components/MediaViewerModal';
+import { SelectedFile } from '../components/MediaViewerModal';
 import { pickImage, pickVideo, pickDocument } from '../native/ImagePicker';
 import Clipboard from '@react-native-clipboard/clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSocket } from '../socket/SocketContext';
-import ChatPanel, { ChatMessage, ChatUser } from '../components/ChatPanel';
+import ChatPanel from '../components/ChatPanel';
 import Avatar from '../components/Avatar';
 import GenericFlatList from '../components/GenericFlatList';
-import BASE_URL from '../url/BaseUrl';
+import { useChat, ConversationItem } from '../hooks/useChat';
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'Home'>;
 
@@ -44,134 +44,39 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fabMenuVisible, setFabMenuVisible] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    searchQuery,
+    setSearchQuery,
+    searchResults,
+    searchLoading,
+    conversations,
+    selectedUser,
+    messages,
+    messageInput,
+    setMessageInput,
+    selectSearchResult,
+    openConversation,
+    sendMessage,
+    sendFiles,
+    backFromChat,
+    isSendingImage,
 
-  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messageInput, setMessageInput] = useState('');
-  const [conversations, setConversations] = useState<ChatUser[]>([]);
+  } = useChat(user.xid, socket);
 
   const showWelcomeContent = !viewerVisible && files.length === 0 && !selectedUser;
 
-  // ---------- Debounced XID search ----------
-  useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+  // ---------- Handlers (media / files / auth) ----------
+  const handleSendMessage = () => {
+    if (files.length > 0) {
+      sendFiles(files); // full SelectedFile[] so type (picture/video/document) is preserved
+      setFiles([]);
     }
-
-    const trimmedQuery = searchQuery.trim();
-
-    if (trimmedQuery.length === 0) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
+    if (messageInput.trim().length > 0) {
+      sendMessage();
     }
-
-    setSearchLoading(true);
-
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `${BASE_URL}/api/users/search?query=${encodeURIComponent(trimmedQuery)}`
-        );
-        const data = await response.json();
-        setSearchResults(data.users || []);
-      } catch (err) {
-        console.error('Search request error:', err);
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 300);
-
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, [searchQuery]);
-
-  // ---------- Socket listeners for chat ----------
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleHistory = ({ otherXid, messages: history }: { otherXid: string; messages: ChatMessage[] }) => {
-      setSelectedUser((current) => {
-        if (current && otherXid === current.xid) {
-          setMessages(history);
-        }
-        return current;
-      });
-    };
-
-    const handleNewMessage = (msg: ChatMessage) => {
-      setSelectedUser((current) => {
-        if (current && (msg.sender_xid === current.xid || msg.receiver_xid === current.xid)) {
-          setMessages((prev) => [...prev, msg]);
-        }
-        return current;
-      });
-    };
-
-    socket.on('conversationHistory', handleHistory);
-    socket.on('newMessage', handleNewMessage);
-
-    return () => {
-      socket.off('conversationHistory', handleHistory);
-      socket.off('newMessage', handleNewMessage);
-    };
-  }, [socket]);
-
-  // ---------- Handlers ----------
+  };
   const handleCopyXid = () => {
     Clipboard.setString(user.xid);
-  };
-
-  const handleSelectSearchResult = (result: ChatUser) => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setSelectedUser(result);
-    setMessages([]);
-
-    // Add to conversations list if not already present
-    setConversations((prev) => {
-      const alreadyExists = prev.some((c) => c.xid === result.xid);
-      if (alreadyExists) return prev;
-      return [result, ...prev];
-    });
-
-    if (socket) {
-      socket.emit('getHistory', { myXid: user.xid, otherXid: result.xid });
-    }
-  };
-
-  const handleOpenConversation = (contact: ChatUser) => {
-    setSelectedUser(contact);
-    setMessages([]);
-
-    if (socket) {
-      socket.emit('getHistory', { myXid: user.xid, otherXid: contact.xid });
-    }
-  };
-
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedUser || !socket) return;
-
-    socket.emit('sendMessage', {
-      senderXid: user.xid,
-      receiverXid: selectedUser.xid,
-      text: messageInput.trim(),
-    });
-
-    setMessageInput('');
-  };
-
-  const handleBackFromChat = () => {
-    setSelectedUser(null);
-    setMessages([]);
   };
 
   const handleSelectOption = async (type: AttachmentType) => {
@@ -250,13 +155,13 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
         <Header title={`Welcome, ${user.name}`} onLogout={handleLogout} />
 
         {/* TEMPORARY — dev-only reset button, remove before production */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.devResetButton}
           onPress={handleResetForTesting}
           activeOpacity={0.7}
         >
           <Text style={styles.devResetText}>Reset (Dev)</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <View style={styles.body}>
           {/* LEFT PANEL — search */}
@@ -282,53 +187,59 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
                 ) : searchResults.length === 0 ? (
                   <Text style={styles.searchDropdownEmpty}>No results found</Text>
                 ) : (
-                  searchResults.map((result) => (
-                    <TouchableOpacity
-                      key={result.xid}
-                      style={styles.searchResultRow}
-                      activeOpacity={0.7}
-                      onPress={() => handleSelectSearchResult(result)}
-                    >
-                      <View style={styles.chatHeaderAvatarWrap}>
-                        <Avatar name={result.name} size={38} />
-                      </View>
+                 searchResults.map((result) => {
+                    const isCurrentUser = result.xid === user.xid;
 
-                      <View style={styles.searchResultTextWrap}>
-                        <Text style={styles.searchResultName}>{result.name}</Text>
-                        <Text style={styles.searchResultXid}>{formatXid(result.xid)}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))
+                    return (
+                      <TouchableOpacity
+                        key={result.xid}
+                        style={styles.searchResultRow}
+                        activeOpacity={0.7}
+                        onPress={() => selectSearchResult(result)}
+                      >
+                        <View style={styles.chatHeaderAvatarWrap}>
+                          <Avatar name={result.name} size={38} />
+                        </View>
+
+                        <View style={styles.searchResultTextWrap}>
+                          <Text style={styles.searchResultName}>
+                            {result.name}
+                            {isCurrentUser && <Text style={styles.youLabel}> (You)</Text>}
+                          </Text>
+                          <Text style={styles.searchResultXid}>{formatXid(result.xid)}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
                 )}
               </View>
             )}
 
             {searchQuery.trim().length === 0 && (
               <View style={styles.conversationsListWrap}>
-
-
-                <GenericFlatList
+                <GenericFlatList<ConversationItem>
                   data={conversations}
-                  keyExtractor={(item) => item.xid}
+                  keyExtractor={(item) => item.other_xid}
                   emptyText="No conversations yet"
                   renderItem={(item) => (
                     <TouchableOpacity
                       style={[
                         styles.conversationRow,
-                        selectedUser?.xid === item.xid && styles.conversationRowActive,
+                        selectedUser?.xid === item.other_xid && styles.conversationRowActive,
                       ]}
                       activeOpacity={0.7}
-                      onPress={() => handleOpenConversation(item)}
+                      onPress={() => openConversation(item)}
                     >
-                      <Avatar name={item.name} size={44} />
+                      <Avatar name={item.other_name} size={44} />
                       <View style={styles.conversationTextWrap}>
-                        <Text style={styles.conversationName}>{item.name}</Text>
-                        <Text style={styles.conversationXid}>{formatXid(item.xid)}</Text>
+                        <Text style={styles.conversationName}>{item.other_name}</Text>
+                        <Text style={styles.conversationPreview} numberOfLines={1}>
+                          {item.last_message}
+                        </Text>
                       </View>
                     </TouchableOpacity>
                   )}
                 />
-
               </View>
             )}
           </View>
@@ -343,8 +254,19 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
                 messageInput={messageInput}
                 onChangeMessageInput={setMessageInput}
                 onSendMessage={handleSendMessage}
-                onBack={handleBackFromChat}
+                onBack={backFromChat}
                 formatXid={formatXid}
+                onAttachmentSelect={handleSelectOption}
+                viewerVisible={viewerVisible}
+                files={files}
+                currentIndex={currentIndex}
+                onViewerPrevious={handlePrevious}
+                onViewerNext={handleNext}
+                onViewerClose={handleClose}
+                onViewerSelectIndex={setCurrentIndex}
+                isSendingImage={isSendingImage}
+
+                onRemoveFile={(id) => setFiles(prev => prev.filter(f => f.id !== id))}
               />
             ) : (
               showWelcomeContent && (
@@ -382,44 +304,9 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
               )
             )}
 
-            <MediaViewerModal
-              visible={viewerVisible}
-              files={files}
-              currentIndex={currentIndex}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
-              onClose={handleClose}
-              onSelectIndex={setCurrentIndex}
-            />
+
           </View>
         </View>
-
-        {/* <TouchableOpacity
-          style={styles.fab}
-          activeOpacity={0.85}
-          onPress={() => setFabMenuVisible(prev => !prev)}
-        >
-          <Icon name={fabMenuVisible ? 'x' : 'plus'} size={26} color="#ffffff" />
-        </TouchableOpacity>
-
-        {fabMenuVisible && (
-          <View style={styles.fabMenu}>
-            <Pressable style={styles.fabMenuItemRow} onPress={() => handleSelectOption('picture')}>
-              <Icon name="image" size={16} color="#0c0c45" />
-              <Text style={styles.fabMenuText}>Images</Text>
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.fabMenuItemRow} onPress={() => handleSelectOption('video')}>
-              <Icon name="video" size={16} color="#0c0c45" />
-              <Text style={styles.fabMenuText}>Videos</Text>
-            </Pressable>
-            <View style={styles.divider} />
-            <Pressable style={styles.fabMenuItemRow} onPress={() => handleSelectOption('document')}>
-              <Icon name="file-text" size={16} color="#0c0c45" />
-              <Text style={styles.fabMenuText}>Documents</Text>
-            </Pressable>
-          </View>
-        )} */}
       </SafeAreaView>
     </ImageBackground>
   );
@@ -439,8 +326,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
-
-  /* ---------- Left panel ---------- */
   leftPanel: {
     width: 320,
     backgroundColor: 'rgb(16, 9, 27)',
@@ -516,8 +401,6 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     color: 'rgba(255,255,255,0.6)',
   },
-
-  /* ---------- Right panel ---------- */
   rightPanel: {
     flex: 1,
   },
@@ -608,8 +491,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 4,
   },
-
-  /* ---------- FAB ---------- */
   fab: {
     position: 'absolute',
     bottom: 28,
@@ -697,14 +578,20 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 2,
   },
-  conversationXid: {
+  conversationPreview: {
     fontSize: 11.5,
     color: 'rgba(255,255,255,0.55)',
   },
   chatHeaderAvatarWrap: {
     marginRight: 12,
   },
-
+  youLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.55)',
+    fontStyle: 'italic',
+    marginLeft: 20
+  },
 });
 
 export default HomeScreen;

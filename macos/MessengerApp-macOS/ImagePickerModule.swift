@@ -63,4 +63,21 @@ class ImagePickerModule: NSObject {
       resolve(success)
     }
   }
+
+  // Reads a file from disk and returns it as a base64-encoded string
+  // @objc
+  // func readFileAsBase64(_ path: String,
+  //                       resolver resolve: @escaping RCTPromiseResolveBlock,
+  //                       rejecter reject: @escaping RCTPromiseRejectBlock) {
+  //   DispatchQueue.global(qos: .userInitiated).async {
+  //     guard let data = NSData(contentsOfFile: path) as Data? else {
+  //       let error = NSError(domain: "ImagePickerModule", code: 1,
+  //                          userInfo: [NSLocalizedDescriptionKey: "Could not read file at path: \(path)"])
+  //       reject("READ_ERROR", "Could not read file", error)
+  //       return
+  //     }
+  //     let base64String = data.base64EncodedString(options: [])
+  //     resolve(base64String)
+  //   }
+  // }
 }

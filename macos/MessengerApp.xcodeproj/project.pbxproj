@@ -12,6 +12,8 @@
 		4D0CD78C2FFB951F00663885 /* VideoPlayerViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0CD78B2FFB951F00663885 /* VideoPlayerViewManager.swift */; };
 		4D0CD78E2FFB958500663885 /* VideoPlayerViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D0CD78D2FFB958500663885 /* VideoPlayerViewManager.m */; };
 		4D0CD7902FFB97FB00663885 /* Feather.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D0CD78F2FFB97FB00663885 /* Feather.ttf */; };
+		4D72D8153008D943000F81DB /* FileDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D72D8143008D943000F81DB /* FileDownloader.swift */; };
+		4D72D8173008D986000F81DB /* FileDownloader.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D72D8163008D986000F81DB /* FileDownloader.m */; };
 		4D7A70EB2FFD02A60006A137 /* DocumentPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A70EA2FFD02A60006A137 /* DocumentPreviewView.swift */; };
 		4D7A70ED2FFD03C60006A137 /* DocumentPreviewViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A70EC2FFD03C60006A137 /* DocumentPreviewViewManager.swift */; };
 		4D7A70EF2FFD03F30006A137 /* DocumentPreviewViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A70EE2FFD03F30006A137 /* DocumentPreviewViewManager.m */; };
@@ -32,6 +34,8 @@
 		4D0CD78B2FFB951F00663885 /* VideoPlayerViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerViewManager.swift; sourceTree = "<group>"; };
 		4D0CD78D2FFB958500663885 /* VideoPlayerViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VideoPlayerViewManager.m; sourceTree = "<group>"; };
 		4D0CD78F2FFB97FB00663885 /* Feather.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Feather.ttf; sourceTree = "<group>"; };
+		4D72D8143008D943000F81DB /* FileDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDownloader.swift; sourceTree = "<group>"; };
+		4D72D8163008D986000F81DB /* FileDownloader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FileDownloader.m; sourceTree = "<group>"; };
 		4D7A70EA2FFD02A60006A137 /* DocumentPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPreviewView.swift; sourceTree = "<group>"; };
 		4D7A70EC2FFD03C60006A137 /* DocumentPreviewViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPreviewViewManager.swift; sourceTree = "<group>"; };
 		4D7A70EE2FFD03F30006A137 /* DocumentPreviewViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DocumentPreviewViewManager.m; sourceTree = "<group>"; };
@@ -100,6 +104,8 @@
 				4D7A70EA2FFD02A60006A137 /* DocumentPreviewView.swift */,
 				4D7A70EC2FFD03C60006A137 /* DocumentPreviewViewManager.swift */,
 				4D7A70EE2FFD03F30006A137 /* DocumentPreviewViewManager.m */,
+				4D72D8143008D943000F81DB /* FileDownloader.swift */,
+				4D72D8163008D986000F81DB /* FileDownloader.m */,
 			);
 			path = "MessengerApp-macOS";
 			sourceTree = "<group>";
@@ -348,7 +354,9 @@
 				4D0CD78C2FFB951F00663885 /* VideoPlayerViewManager.swift in Sources */,
 				4D7A70EF2FFD03F30006A137 /* DocumentPreviewViewManager.m in Sources */,
 				4DC445152FF7D8F000970EE9 /* ImagePickerModule.m in Sources */,
+				4D72D8173008D986000F81DB /* FileDownloader.m in Sources */,
 				4DC445132FF7D82B00970EE9 /* ImagePickerModule.swift in Sources */,
+				4D72D8153008D943000F81DB /* FileDownloader.swift in Sources */,
 				5142014D2437B4B30078DB4F /* AppDelegate.mm in Sources */,
 				4D0CD78A2FFB94D300663885 /* VideoPlayerView.swift in Sources */,
 				4D0CD78E2FFB958500663885 /* VideoPlayerViewManager.m in Sources */,
@@ -533,10 +541,7 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -597,10 +602,7 @@
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					" ",
-				);
+				OTHER_LDFLAGS = "$(inherited)  ";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;

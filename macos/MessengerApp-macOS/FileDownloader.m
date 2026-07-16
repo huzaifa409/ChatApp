@@ -1,8 +1,9 @@
-//
-//  FileDownloader.m
-//  MessengerApp-macOS
-//
-//  Created by en-007 on 16/07/2026.
-//
+#import <React/RCTBridgeModule.h>
 
-#import <Foundation/Foundation.h>
+@interface RCT_EXTERN_MODULE(FileDownloader, NSObject)
+
+RCT_EXTERN_METHOD(downloadFile:(NSString *)remoteUrl
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
+@end
