@@ -50,8 +50,8 @@ interface ChatPanelProps {
   onViewerClose: () => void;
   onViewerSelectIndex: (index: number) => void;
 
-  // remove file callback
-  onRemoveFile: (id: string) => void;
+  
+  onRemoveFile:(id:string)=>void;
 
   isSendingImage: boolean;
 }
@@ -75,13 +75,24 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onViewerNext,
   onViewerClose,
   onViewerSelectIndex,
-  onRemoveFile,
+ onRemoveFile,
   isSendingImage,
 }) => {
 
 
   const [downloadingId, setDownloadingId] = React.useState<number | null>(null);
-  const [receivedMedia, setReceivedMedia] = React.useState<{ type: 'video' | 'document'; localPath: string } | null>(null);
+  const [receivedMedia, setReceivedMedia] = React.useState<{
+    type: 'image' | 'video' | 'document';
+    localPath: string;
+  } | null>(null);
+
+
+  React.useEffect(() => {
+    setReceivedMedia(null);
+  }, [selectedUser.xid]);
+
+
+ 
 
   const handleOpenReceivedMedia = async (msg: ChatMessage) => {
     if (!msg.media_data) return;
@@ -92,7 +103,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     setDownloadingId(msg.id);
     try {
       const localPath = await downloadFile(remoteUrl);
-      setReceivedMedia({ type: msg.message_type as 'video' | 'document', localPath });
+      setReceivedMedia({
+        type: msg.message_type as 'image' | 'video' | 'document',
+        localPath,
+      });
     } catch (err) {
       console.error('[media] download failed:', err);
     } finally {
@@ -159,11 +173,28 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   key={msg.id}
                   style={isMine ? styles.imageBubbleMine : styles.imageBubbleTheirs}
                 >
-                  <Image
-                    source={{ uri }}
-                    style={styles.inlineImage}
-                    resizeMode="cover"
-                  />
+                  
+                  <TouchableOpacity
+                    key={msg.id}
+                    style={isMine ? styles.imageBubbleMine : styles.imageBubbleTheirs}
+                    activeOpacity={0.9}
+                    onPress={() => handleOpenReceivedMedia(msg)}
+                    disabled={downloadingId === msg.id}
+                  >
+                    {downloadingId === msg.id ? (
+                      <ActivityIndicator
+                        color="#ffffff"
+                        style={styles.inlineImage}
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri }}
+                        style={styles.inlineImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                  </TouchableOpacity>
+                  
                 </View>
               );
             }
@@ -236,6 +267,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           onNext={onViewerNext}
           onClose={onViewerClose}
           onSelectIndex={onViewerSelectIndex}
+          onRemoveFile={onRemoveFile}
         />
 
         <ReceivedMediaModal
@@ -257,7 +289,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       </View>
 
       <View style={styles.inputAreaWrap}>
-        {/* Preview strip for attached files */}
+        {/* Preview strip for attached files
         {files.length > 0 && (
           <ScrollView
             horizontal
@@ -273,6 +305,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   <View style={styles.attachedFilePlaceholder}>
                     <Icon name={file.type === 'video' ? 'video' : 'file-text'} size={24} color="rgba(255,255,255,0.4)" />
                   </View>
+
                 )}
                 <TouchableOpacity style={styles.removeFileButton} onPress={() => onRemoveFile(file.id)}>
                   <Icon name="x" size={12} color="#ffffff" />
@@ -280,7 +313,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               </View>
             ))}
           </ScrollView>
-        )}
+        )} */}
 
         {attachMenuVisible && (
           <View style={styles.attachMenu}>
@@ -650,6 +683,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     maxWidth: '75%',
+    marginHorizontal: 17,
+
   },
 });
 

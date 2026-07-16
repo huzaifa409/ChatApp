@@ -19,11 +19,13 @@ interface MediaViewerModalProps {
   onNext: () => void;
   onClose: () => void;
   onSelectIndex: (index: number) => void;
+  onRemoveFile:(id:string)=>void;
+
 }
 
 
 
-const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , currentIndex , onPrevious , onNext , onClose , onSelectIndex}) => {
+const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , currentIndex , onPrevious , onNext , onClose , onSelectIndex,  onRemoveFile,}) => {
 
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -126,31 +128,52 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , cu
           contentContainerStyle={styles.thumbnailStripContent}
         >
           {files.map((file, index) => {
-            if (file.type === 'document') return null;
+  if (file.type === 'document') return null;
 
-            const isActive = index === currentIndex;
+  const isActive = index === currentIndex;
 
-            return (
-              <TouchableOpacity
-                key={file.id}
-                onPress={() => onSelectIndex(index)}
-                style={[styles.thumbnail, isActive && styles.thumbnailActive]}
-              >
-                {file.type === 'picture' && (
-                  <Image
-                    source={{ uri: `file://${file.path}` }}
-                    style={styles.thumbnailImage}
-                    resizeMode="cover"
-                  />
-                )}
-                {file.type === 'video' && (
-                  <View style={styles.thumbnailVideoPlaceholder}>
-                    <Icon name="play" size={16} color="#ffffff" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+  return (
+    <View key={file.id} style={styles.thumbnailWrapper}>
+
+      {/* Delete Button */}
+      <TouchableOpacity
+        style={styles.thumbnailDelete}
+        onPress={() => onRemoveFile(file.id)}
+      >
+        <Icon name="x" size={11} color="#ffffff" />
+      </TouchableOpacity>
+
+      {/* Thumbnail */}
+      <TouchableOpacity
+        onPress={() => onSelectIndex(index)}
+        style={[
+          styles.thumbnail,
+          isActive && styles.thumbnailActive,
+        ]}
+      >
+        {file.type === 'picture' && (
+
+           <View style={styles.imageWrapper}>
+        <Image
+            source={{ uri: `file://${file.path}` }}
+            style={styles.thumbnailImage}
+            resizeMode="cover"
+        />
+    </View>
+
+         
+        )}
+
+        {file.type === 'video' && (
+          <View style={styles.thumbnailVideoPlaceholder}>
+            <Icon name="play" size={16} color="#ffffff" />
+          </View>
+        )}
+      </TouchableOpacity>
+
+    </View>
+  );
+})}
         </ScrollView>
       )}
     </View>
@@ -180,7 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     zIndex: 2010,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'transparent',
   },
   closeButton: {
     width: 34,
@@ -222,6 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -40,
+    marginBottom: 40,
   },
   video: {
     width: '100%',
@@ -268,28 +292,28 @@ const styles = StyleSheet.create({
     height: '100%',
   },
  thumbnailStrip: {
-    position: 'absolute',
-    bottom: 16,
-    left: 0,
-    right: 0,
-    maxHeight: 64,
-  },
-  thumbnailStripContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbnail: {
-    width: 52,
-    height: 52,
+  position: 'absolute',
+  bottom: 16,
+  left: 0,
+  right: 0,
+  height: 82,
+},
+ thumbnailStripContent: {
+  flexGrow: 1,
+  paddingHorizontal: 20,
+  paddingTop: 10,
+  alignItems: 'center',
+},
+ thumbnail: {
+    width: 62,
+    height: 62,
     borderRadius: 8,
-    overflow: 'hidden',
-    marginHorizontal: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: '#222',
-  },
+    
+    // overflow: 'hidden',
+    marginHorizontal: 6,
+    backgroundColor: 'transparent',
+    
+},
   thumbnailActive: {
     borderColor: '#ffffff',
   },
@@ -304,6 +328,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#000',
   },
+  thumbnailWrapper: {
+  position: 'relative',
+  marginHorizontal: 4,
+  paddingTop: 8,
+},
+
+thumbnailDelete: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+
+    backgroundColor: '#EF4444',
+
+    justifyContent: 'center',
+    alignItems: 'center',
+
+    zIndex: 999,
+},
+imageWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    overflow: 'hidden',
+},
 });
 
 export default MediaViewerModal;

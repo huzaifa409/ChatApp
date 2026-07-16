@@ -65,6 +65,24 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
 
   const showWelcomeContent = !viewerVisible && files.length === 0 && !selectedUser;
 
+
+  const handleRemoveFile = (id: string) => {
+  setFiles(prev => {
+    const updated = prev.filter(file => file.id !== id);
+
+    if (updated.length === 0) {
+      setViewerVisible(false);
+      return [];
+    }
+
+    if (currentIndex >= updated.length) {
+      setCurrentIndex(updated.length - 1);
+    }
+
+    return updated;
+  });
+};
+
   // ---------- Handlers (media / files / auth) ----------
   const handleSendMessage = () => {
     if (files.length > 0) {
@@ -114,6 +132,8 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
 
   const handleClose = () => {
     setViewerVisible(false);
+     setFiles([]);
+    setCurrentIndex(0);
   };
 
   const handleLogout = () => {
@@ -265,8 +285,9 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
                 onViewerClose={handleClose}
                 onViewerSelectIndex={setCurrentIndex}
                 isSendingImage={isSendingImage}
+                onRemoveFile={handleRemoveFile}
 
-                onRemoveFile={(id) => setFiles(prev => prev.filter(f => f.id !== id))}
+                
               />
             ) : (
               showWelcomeContent && (
