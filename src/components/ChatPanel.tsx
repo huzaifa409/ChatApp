@@ -5,6 +5,7 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Image,
   ActivityIndicator,
@@ -50,8 +51,8 @@ interface ChatPanelProps {
   onViewerClose: () => void;
   onViewerSelectIndex: (index: number) => void;
 
-  
-  onRemoveFile:(id:string)=>void;
+
+  onRemoveFile: (id: string) => void;
 
   isSendingImage: boolean;
 }
@@ -75,46 +76,35 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onViewerNext,
   onViewerClose,
   onViewerSelectIndex,
- onRemoveFile,
+  onRemoveFile,
   isSendingImage,
 }) => {
 
 
-  const [downloadingId, setDownloadingId] = React.useState<number | null>(null);
-  const [receivedMedia, setReceivedMedia] = React.useState<{
-    type: 'image' | 'video' | 'document';
-    localPath: string;
-  } | null>(null);
+  const [receivedMediaId, setReceivedMediaId] = React.useState<number | null>(null);
 
-
+  // FIX 1: reset the received-media popup when switching chats
   React.useEffect(() => {
-    setReceivedMedia(null);
+    setReceivedMediaId(null);
   }, [selectedUser.xid]);
 
+  const [attachMenuVisible, setAttachMenuVisible] = React.useState(false);
 
- 
+  // CLOSE the attachmentMenu when any other chat is opened
+  React.useEffect(() => {
+    setAttachMenuVisible(false);
+  }, [selectedUser.xid]);
+
+  // / Scroll to end when message length changes not on AttachmentMenu OPENING
+  const scrollViewRef = React.useRef<ScrollView | null>(null);
+  React.useEffect(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages.length]);
 
   const handleOpenReceivedMedia = async (msg: ChatMessage) => {
     if (!msg.media_data) return;
-    const remoteUrl = msg.media_data.startsWith('http')
-      ? msg.media_data
-      : `${BASE_URL}${msg.media_data}`;
-
-    setDownloadingId(msg.id);
-    try {
-      const localPath = await downloadFile(remoteUrl);
-      setReceivedMedia({
-        type: msg.message_type as 'image' | 'video' | 'document',
-        localPath,
-      });
-    } catch (err) {
-      console.error('[media] download failed:', err);
-    } finally {
-      setDownloadingId(null);
-    }
+    setReceivedMediaId(msg.id);
   };
-
-  const [attachMenuVisible, setAttachMenuVisible] = React.useState(false);
 
   const handleAttachmentPress = (type: AttachmentType) => {
     setAttachMenuVisible(false);
@@ -154,11 +144,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       <View style={styles.messagesArea}>
         <ScrollView
+          ref={scrollViewRef}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesListContent}
-          ref={(ref) => {
-            if (ref) ref.scrollToEnd({ animated: true });
-          }}
         >
           {messages.map((msg) => {
             const isMine = msg.sender_xid === currentUserXid;
@@ -173,28 +161,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   key={msg.id}
                   style={isMine ? styles.imageBubbleMine : styles.imageBubbleTheirs}
                 >
-                  
+
                   <TouchableOpacity
-                    key={msg.id}
-                    style={isMine ? styles.imageBubbleMine : styles.imageBubbleTheirs}
+                    style={styles.imageTouchable}
                     activeOpacity={0.9}
                     onPress={() => handleOpenReceivedMedia(msg)}
-                    disabled={downloadingId === msg.id}
                   >
-                    {downloadingId === msg.id ? (
-                      <ActivityIndicator
-                        color="#ffffff"
-                        style={styles.inlineImage}
-                      />
-                    ) : (
-                      <Image
-                        source={{ uri }}
-                        style={styles.inlineImage}
-                        resizeMode="cover"
-                      />
-                    )}
+                    <Image
+                      source={{ uri }}
+                      style={styles.inlineImage}
+                      resizeMode="cover"
+                    />
                   </TouchableOpacity>
-                  
+
                 </View>
               );
             }
@@ -206,15 +185,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   style={isMine ? styles.mediaCardMine : styles.mediaCardTheirs}
                   activeOpacity={0.8}
                   onPress={() => handleOpenReceivedMedia(msg)}
-                  disabled={downloadingId === msg.id}
                 >
-                  {downloadingId === msg.id ? (
-                    <ActivityIndicator color="#ffffff" style={styles.videoThumb} />
-                  ) : (
-                    <View style={styles.videoThumb}>
-                      <Icon name="play-circle" size={32} color="#ffffff" />
-                    </View>
-                  )}
+                  <View style={styles.videoThumb}>
+                    <Icon name="play-circle" size={32} color="#ffffff" />
+                  </View>
                   <Text style={styles.mediaCardLabel}>Video</Text>
                 </TouchableOpacity>
               );
@@ -231,13 +205,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   ]}
                   activeOpacity={0.8}
                   onPress={() => handleOpenReceivedMedia(msg)}
-                  disabled={downloadingId === msg.id}
                 >
-                  {downloadingId === msg.id ? (
-                    <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
-                  ) : (
-                    <Icon name="file-text" size={20} color="#ffffff" style={{ marginRight: 8 }} />
-                  )}
+                  <Icon name="file-text" size={20} color="#ffffff" style={{ marginRight: 8 }} />
                   <Text style={styles.messageText} numberOfLines={1}>
                     {msg.message_text || 'Document'}
                   </Text>
@@ -259,23 +228,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           })}
         </ScrollView>
 
-        <MediaViewerModal
-          visible={viewerVisible}
-          files={files}
-          currentIndex={currentIndex}
-          onPrevious={onViewerPrevious}
-          onNext={onViewerNext}
-          onClose={onViewerClose}
-          onSelectIndex={onViewerSelectIndex}
-          onRemoveFile={onRemoveFile}
-        />
-
-        <ReceivedMediaModal
-          visible={!!receivedMedia}
-          type={receivedMedia?.type ?? 'document'}
-          localPath={receivedMedia?.localPath ?? ''}
-          onClose={() => setReceivedMedia(null)}
-        />
+        {/* ///Extra Overlay added to close AttachmentMenu */}
+        {attachMenuVisible && (
+          <Pressable
+            style={styles.outsideCloseOverlay}
+            onPress={() => setAttachMenuVisible(false)}
+          />
+        )}
 
         {/* Sending progress overlay */}
         {isSendingImage && (
@@ -286,100 +245,94 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             </View>
           </View>
         )}
+
+        <MediaViewerModal
+          visible={viewerVisible}
+          files={files}
+          currentIndex={currentIndex}
+          onPrevious={onViewerPrevious}
+          onNext={onViewerNext}
+          onClose={onViewerClose}
+          onSelectIndex={onViewerSelectIndex}
+          onRemoveFile={onRemoveFile}
+        />
       </View>
 
-      <View style={styles.inputAreaWrap}>
-        {/* Preview strip for attached files
-        {files.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.attachedFilesStrip}
-            contentContainerStyle={styles.attachedFilesStripContent}
-          >
-            {files.map((file) => (
-              <View key={file.id} style={styles.attachedFileBox}>
-                {file.type === 'picture' ? (
-                  <Image source={{ uri: `file://${file.path}` }} style={styles.attachedFileImage} resizeMode="cover" />
-                ) : (
-                  <View style={styles.attachedFilePlaceholder}>
-                    <Icon name={file.type === 'video' ? 'video' : 'file-text'} size={24} color="rgba(255,255,255,0.4)" />
-                  </View>
+      {!receivedMediaId && (
+        <View style={styles.inputAreaWrap}>
+          {attachMenuVisible && (
+            <View style={styles.attachMenu}>
+              <TouchableOpacity
+                style={styles.attachMenuItem}
+                activeOpacity={0.7}
+                onPress={() => handleAttachmentPress('picture')}
+              >
+                <View style={[styles.attachIconBadge, { backgroundColor: '#F59E0B' }]}>
+                  <Icon name="camera" size={16} color="#ffffff" />
+                </View>
+                <Text style={styles.attachMenuText}>Images</Text>
+              </TouchableOpacity>
 
-                )}
-                <TouchableOpacity style={styles.removeFileButton} onPress={() => onRemoveFile(file.id)}>
-                  <Icon name="x" size={12} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )} */}
+              <TouchableOpacity
+                style={styles.attachMenuItem}
+                activeOpacity={0.7}
+                onPress={() => handleAttachmentPress('video')}
+              >
+                <View style={[styles.attachIconBadge, { backgroundColor: '#EF4444' }]}>
+                  <Icon name="video" size={16} color="#ffffff" />
+                </View>
+                <Text style={styles.attachMenuText}>Videos</Text>
+              </TouchableOpacity>
 
-        {attachMenuVisible && (
-          <View style={styles.attachMenu}>
+              <TouchableOpacity
+                style={styles.attachMenuItem}
+                activeOpacity={0.7}
+                onPress={() => handleAttachmentPress('document')}
+              >
+                <View style={[styles.attachIconBadge, { backgroundColor: '#3B82F6' }]}>
+                  <Icon name="file-text" size={16} color="#ffffff" />
+                </View>
+                <Text style={styles.attachMenuText}>Documents</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.messageInputRow}>
             <TouchableOpacity
-              style={styles.attachMenuItem}
+              style={styles.attachButton}
               activeOpacity={0.7}
-              onPress={() => handleAttachmentPress('picture')}
+              onPress={() => setAttachMenuVisible((prev) => !prev)}
             >
-              <View style={[styles.attachIconBadge, { backgroundColor: '#F59E0B' }]}>
-                <Icon name="camera" size={16} color="#ffffff" />
-              </View>
-              <Text style={styles.attachMenuText}>Images</Text>
+              <Icon name={attachMenuVisible ? 'x' : 'plus'} size={20} color="#ffffff" />
             </TouchableOpacity>
 
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Type a message..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={messageInput}
+              onChangeText={onChangeMessageInput}
+              onSubmitEditing={onSendMessage}
+              underlineColorAndroid="transparent"
+              {...({ enableFocusRing: false } as any)}
+            />
             <TouchableOpacity
-              style={styles.attachMenuItem}
-              activeOpacity={0.7}
-              onPress={() => handleAttachmentPress('video')}
+              style={styles.sendButton}
+              onPress={onSendMessage}
+              activeOpacity={0.8}
             >
-              <View style={[styles.attachIconBadge, { backgroundColor: '#EF4444' }]}>
-                <Icon name="video" size={16} color="#ffffff" />
-              </View>
-              <Text style={styles.attachMenuText}>Videos</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.attachMenuItem}
-              activeOpacity={0.7}
-              onPress={() => handleAttachmentPress('document')}
-            >
-              <View style={[styles.attachIconBadge, { backgroundColor: '#3B82F6' }]}>
-                <Icon name="file-text" size={16} color="#ffffff" />
-              </View>
-              <Text style={styles.attachMenuText}>Documents</Text>
+              <Icon name="send" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
-        )}
-
-        <View style={styles.messageInputRow}>
-          <TouchableOpacity
-            style={styles.attachButton}
-            activeOpacity={0.7}
-            onPress={() => setAttachMenuVisible((prev) => !prev)}
-          >
-            <Icon name={attachMenuVisible ? 'x' : 'plus'} size={20} color="#ffffff" />
-          </TouchableOpacity>
-
-          <TextInput
-            style={styles.messageInput}
-            placeholder="Type a message..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={messageInput}
-            onChangeText={onChangeMessageInput}
-            onSubmitEditing={onSendMessage}
-            underlineColorAndroid="transparent"
-            {...({ enableFocusRing: false } as any)}
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={onSendMessage}
-            activeOpacity={0.8}
-          >
-            <Icon name="send" size={18} color="#ffffff" />
-          </TouchableOpacity>
         </View>
-      </View>
+      )}
+
+      <ReceivedMediaModal
+        visible={!!receivedMediaId}
+        initialMessageId={receivedMediaId}
+        messages={messages}
+        onClose={() => setReceivedMediaId(null)}
+      />
     </View>
   );
 };
@@ -444,11 +397,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#6C3CE9',
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
+    
   },
   messageBubbleTheirs: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
+    
   },
   messageText: {
     fontSize: 13.5,
@@ -511,6 +466,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 10,
+    zIndex: 5000,
   },
   attachMenuItem: {
     flexDirection: 'row',
@@ -541,6 +497,9 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 14,
     overflow: 'hidden',
+  },
+  imageTouchable: {
+    width: '100%',
   },
   inlineImage: {
     width: 220,
@@ -643,12 +602,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
   },
-  imageBubbleTheirs: {
+ imageBubbleTheirs: {
     alignSelf: 'flex-start',
     marginBottom: 10,
     borderRadius: 14,
     overflow: 'hidden',
-    marginHorizontal: 20
   },
   mediaCardMine: {
     alignSelf: 'flex-end',
@@ -665,7 +623,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'rgba(255,255,255,0.08)',
     width: 160,
-    marginHorizontal: 20,
   },
   videoThumb: {
     width: '100%',
@@ -683,8 +640,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     maxWidth: '75%',
-    marginHorizontal: 17,
-
+  },
+  outsideCloseOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 2000,
   },
 });
 

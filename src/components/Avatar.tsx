@@ -6,7 +6,7 @@ interface AvatarProps {
   size?: number;
 }
 
-// A small fixed palette — color is picked consistently based on the name
+
 const COLORS = ['#6C3CE9', '#9333EA', '#2563EB', '#DB2777', '#059669', '#D97706', '#DC2626'];
 
 const getColorForName = (name: string) => {

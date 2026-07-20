@@ -1,40 +1,116 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   Image,
   LayoutChangeEvent,
+  ScrollView,
+  ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import VideoPlayerView from '../native/VideoPlayerView';
 import DocumentPreviewView from '../native/DocumentPreviewView';
+import { ChatMessage } from './ChatPanel';
+import BASE_URL from '../url/BaseUrl';
+import { downloadFile } from '../native/FileDownloader';
 
 interface ReceivedMediaModalProps {
   visible: boolean;
-  type: 'image' | 'video' | 'document';
-  localPath: string;
+  messages: ChatMessage[];
+  initialMessageId: number | null;
   onClose: () => void;
 }
 
 const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
   visible,
-  type,
-  localPath,
+  messages,
+  initialMessageId,
   onClose,
 }) => {
-  const [naturalSize, setNaturalSize] = React.useState<{
+  const [naturalSize, setNaturalSize] = useState<{
     width: number;
     height: number;
   } | null>(null);
 
-  const [containerSize, setContainerSize] = React.useState({
+  const [containerSize, setContainerSize] = useState({
     width: 0,
     height: 0,
   });
 
-  React.useEffect(() => {
-    if (type !== 'image') {
+  const [mediaMessages, setMediaMessages] = useState<ChatMessage[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [downloading, setDownloading] = useState(false);
+  const [currentLocalPath, setCurrentLocalPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible || initialMessageId === null) {
+      setCurrentLocalPath(null);
+      setCurrentIndex(-1);
+      setMediaMessages([]);
+      return;
+    }
+
+    const initialMsg = messages.find((m) => m.id === initialMessageId);
+    if (!initialMsg) return;
+
+    if (initialMsg.message_type === 'document') {
+      setMediaMessages([initialMsg]);
+      if (currentIndex === -1) setCurrentIndex(0);
+    } else {
+      const media = messages.filter(
+        (m) =>
+          m.media_data &&
+          (m.message_type === 'image' || m.message_type === 'video')
+      );
+      setMediaMessages(media);
+
+      if (currentIndex === -1) {
+        const idx = media.findIndex((m) => m.id === initialMessageId);
+        setCurrentIndex(idx !== -1 ? idx : 0);
+      }
+    }
+  }, [visible, initialMessageId, messages]);
+
+  const currentMsg =
+    currentIndex >= 0 && currentIndex < mediaMessages.length
+      ? mediaMessages[currentIndex]
+      : null;
+
+  useEffect(() => {
+    if (!currentMsg) return;
+
+    let isCancelled = false;
+    const fetchMedia = async () => {
+      setDownloading(true);
+      setCurrentLocalPath(null);
+      const remoteUrl = currentMsg.media_data!.startsWith('http')
+        ? currentMsg.media_data!
+        : `${BASE_URL}${currentMsg.media_data}`;
+      try {
+        const localPath = await downloadFile(remoteUrl);
+        if (!isCancelled) {
+          setCurrentLocalPath(localPath);
+        }
+      } catch (err) {
+        console.error('Failed to download media', err);
+      } finally {
+        if (!isCancelled) {
+          setDownloading(false);
+        }
+      }
+    };
+
+    fetchMedia();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentMsg]);
+
+  useEffect(() => {
+    if (!currentMsg || currentMsg.message_type !== 'image' || !currentLocalPath) {
       setNaturalSize(null);
       return;
     }
@@ -42,7 +118,7 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
     let cancelled = false;
 
     Image.getSize(
-      `file://${localPath}`,
+      `file://${currentLocalPath}`,
       (width, height) => {
         if (!cancelled) {
           setNaturalSize({ width, height });
@@ -58,12 +134,24 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [type, localPath]);
+  }, [currentMsg, currentLocalPath]);
 
   const handleContainerLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setContainerSize({ width, height });
   };
+
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? mediaMessages.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev === mediaMessages.length - 1 ? 0 : prev + 1));
+  };
+
+  if (!visible || !currentMsg) return null;
+
+  const hasMultiple = mediaMessages.length > 1;
 
   let imageDisplaySize = { width: 300, height: 300 };
 
@@ -78,22 +166,33 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
     };
   }
 
-  if (!visible) return null;
-
   return (
-    <View style={styles.overlay}>
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={onClose}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Icon name="x" size={24} color="#ffffff" />
-      </TouchableOpacity>
+    <Pressable style={styles.overlay}>
+      {/* Top toolbar */}
+      <View style={styles.toolbar}>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <View pointerEvents="none">
+            <Icon name="x" size={20} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {hasMultiple && (
+        <TouchableOpacity style={styles.arrowLeft} onPress={handlePrevious}>
+          <View pointerEvents="none">
+            <Icon name="chevron-left" size={32} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.content} onLayout={handleContainerLayout}>
-        {type === 'image' && containerSize.width > 0 && (
+        {downloading && (
+          <ActivityIndicator size="large" color="#ffffff" />
+        )}
+
+        {!downloading && currentLocalPath && currentMsg.message_type === 'image' && containerSize.width > 0 && (
           <Image
-            source={{ uri: `file://${localPath}` }}
+            source={{ uri: `file://${currentLocalPath}` }}
             resizeMode="contain"
             style={{
               width: imageDisplaySize.width,
@@ -102,47 +201,195 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
           />
         )}
 
-        {type === 'video' && (
+        {!downloading && currentLocalPath && currentMsg.message_type === 'video' && (
           <VideoPlayerView
-            videoPath={localPath}
+            videoPath={currentLocalPath}
             style={styles.mediaView}
           />
         )}
 
-        {type === 'document' && (
+        {!downloading && currentLocalPath && currentMsg.message_type === 'document' && (
           <DocumentPreviewView
-            filePath={localPath}
+            filePath={currentLocalPath}
             style={styles.mediaView}
           />
         )}
       </View>
-    </View>
+
+      {hasMultiple && (
+        <TouchableOpacity style={styles.arrowRight} onPress={handleNext}>
+          <View pointerEvents="none">
+            <Icon name="chevron-right" size={32} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {hasMultiple && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.thumbnailStrip}
+          contentContainerStyle={styles.thumbnailStripContent}
+        >
+          {mediaMessages.map((msg, index) => {
+            const isActive = index === currentIndex;
+            const remoteUrl = msg.media_data!.startsWith('http')
+              ? msg.media_data!
+              : `${BASE_URL}${msg.media_data}`;
+
+            return (
+              <View key={msg.id} style={styles.thumbnailWrapper}>
+                <TouchableOpacity
+                  onPress={() => setCurrentIndex(index)}
+                  style={[
+                    styles.thumbnail,
+                    isActive && styles.thumbnailActive,
+                  ]}
+                >
+                  {msg.message_type === 'image' && (
+                    <View style={styles.imageWrapper} pointerEvents="none">
+                      <Image
+                        source={{ uri: remoteUrl }}
+                        style={styles.thumbnailImage}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
+
+                  {msg.message_type === 'video' && (
+                    <View style={styles.thumbnailVideoPlaceholder} pointerEvents="none">
+                      <Icon name="play" size={16} color="#ffffff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgb(10, 8, 16)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 4000,
+    cursor: 'default',
+  } as any,
+  toolbar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 4010,
+    backgroundColor: 'transparent',
   },
   closeButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowLeft: {
     position: 'absolute',
-    top: 20,
-    right: 24,
-    zIndex: 10,
+    left: 20,
+    top: '50%',
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4010,
+  },
+  arrowRight: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    marginTop: -24,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4010,
   },
   content: {
-    width: '90%',
-    height: '85%',
-    justifyContent: 'center',
+    width: '82%',
+    height: '78%',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -40,
+    marginBottom: 40,
   },
   mediaView: {
-    width: '90%',
-    height: '80%',
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailStrip: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    height: 82,
+  },
+  thumbnailStripContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    alignItems: 'center',
+  },
+  thumbnail: {
+    width: 62,
+    height: 62,
+    borderRadius: 8,
+    marginHorizontal: 6,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  thumbnailActive: {
+    borderColor: '#ffffff',
+  },
+  thumbnailImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbnailVideoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
+    borderRadius: 8,
+  },
+  thumbnailWrapper: {
+    position: 'relative',
+    marginHorizontal: 4,
+    paddingTop: 0,
+  },
+  imageWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
+    overflow: 'hidden',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, LayoutChangeEvent, ScrollView,} from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, LayoutChangeEvent, ScrollView, Pressable } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import { AttachmentType } from './Header';
 import VideoPlayerView from '../native/VideoPlayerView';
@@ -80,7 +80,7 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , cu
   }
 
   return (
-    <View style={styles.overlay}>
+    <Pressable style={styles.overlay}>
       {/* Top toolbar */}
       <View style={styles.toolbar}>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -128,55 +128,52 @@ const MediaViewerModal: React.FC<MediaViewerModalProps> = ({visible , files , cu
           contentContainerStyle={styles.thumbnailStripContent}
         >
           {files.map((file, index) => {
-  if (file.type === 'document') return null;
+            if (file.type === 'document') return null;
 
-  const isActive = index === currentIndex;
+            const isActive = index === currentIndex;
 
-  return (
-    <View key={file.id} style={styles.thumbnailWrapper}>
+            return (
+              <View key={file.id} style={styles.thumbnailWrapper}>
 
-      {/* Delete Button */}
-      <TouchableOpacity
-        style={styles.thumbnailDelete}
-        onPress={() => onRemoveFile(file.id)}
-      >
-        <Icon name="x" size={11} color="#ffffff" />
-      </TouchableOpacity>
+                {/* Delete Button */}
+                <TouchableOpacity
+                  style={styles.thumbnailDelete}
+                  onPress={() => onRemoveFile(file.id)}
+                >
+                  <Icon name="x" size={11} color="#ffffff" />
+                </TouchableOpacity>
 
-      {/* Thumbnail */}
-      <TouchableOpacity
-        onPress={() => onSelectIndex(index)}
-        style={[
-          styles.thumbnail,
-          isActive && styles.thumbnailActive,
-        ]}
-      >
-        {file.type === 'picture' && (
+                {/* Thumbnail */}
+                <TouchableOpacity
+                  onPress={() => onSelectIndex(index)}
+                  style={[
+                    styles.thumbnail,
+                    isActive && styles.thumbnailActive,
+                  ]}
+                >
+                  {file.type === 'picture' && (
+                    <View style={styles.imageWrapper} pointerEvents="none">
+                      <Image
+                        source={{ uri: `file://${file.path}` }}
+                        style={styles.thumbnailImage}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
 
-           <View style={styles.imageWrapper}>
-        <Image
-            source={{ uri: `file://${file.path}` }}
-            style={styles.thumbnailImage}
-            resizeMode="cover"
-        />
-    </View>
+                  {file.type === 'video' && (
+                    <View style={styles.thumbnailVideoPlaceholder} pointerEvents="none">
+                      <Icon name="play" size={16} color="#ffffff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
 
-         
-        )}
-
-        {file.type === 'video' && (
-          <View style={styles.thumbnailVideoPlaceholder}>
-            <Icon name="play" size={16} color="#ffffff" />
-          </View>
-        )}
-      </TouchableOpacity>
-
-    </View>
-  );
-})}
+              </View>
+            );
+          })}
         </ScrollView>
       )}
-    </View>
+    </Pressable>
   );
 };
 
@@ -191,7 +188,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2000,
-  },
+    cursor: 'default',
+  } as any,
   toolbar: {
     position: 'absolute',
     top: 0,

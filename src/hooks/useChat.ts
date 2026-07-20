@@ -40,14 +40,14 @@ export function useChat(myXid: string, socket: Socket | null) {
   const [messageInput, setMessageInput] = useState('');
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
 
-  // Media sending progress state (covers image, video, document)
+  
   const [isSendingImage, setIsSendingImage] = useState(false);
 
-  // Track latest selectedUser in a ref so socket callbacks can read it without stale closure
+  
   const selectedUserRef = useRef<ChatUser | null>(null);
   selectedUserRef.current = selectedUser;
 
-  // ---------- Debounced XID search ----------
+  
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
@@ -85,13 +85,13 @@ export function useChat(myXid: string, socket: Socket | null) {
     };
   }, [searchQuery]);
 
-  // ---------- Fetch conversation list once the socket is ready ----------
+  
   useEffect(() => {
     if (!socket) return;
     socket.emit('getConversations', { myXid });
   }, [socket, myXid]);
 
-  // ---------- Socket listeners for chat ----------
+ 
   useEffect(() => {
     if (!socket) return;
 
@@ -199,7 +199,7 @@ export function useChat(myXid: string, socket: Socket | null) {
       const response = await fetch(`${BASE_URL}/api/upload/file`, {
         method: 'POST',
         body: formData,
-        // No Content-Type header — fetch sets the multipart boundary itself
+        
       });
 
       if (!response.ok) {
