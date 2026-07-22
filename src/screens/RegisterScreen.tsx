@@ -17,6 +17,8 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
 import BASE_URL from '../url/BaseUrl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initLocalDB } from '../database/LocalDatabase';
+
 
 const webNoOutline =
   Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {};
@@ -52,13 +54,15 @@ function RegisterScreen({ navigation }: RegisterScreenProps): React.JSX.Element 
 
       const data = await response.json();
 
+
+
       if (!response.ok) {
         Alert.alert('Registration failed', data.error || 'Something went wrong.');
         return;
       }
 
-      
-     const userData = { name: name.trim(), xid: data.xid };
+      const userData = { name: name.trim(), xid: data.xid };
+      await initLocalDB(userData.xid);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       await AsyncStorage.setItem('hasUsedApp', 'true');
 
@@ -202,7 +206,7 @@ function RegisterScreen({ navigation }: RegisterScreenProps): React.JSX.Element 
     </ImageBackground>
   );
 }
-       
+
 
 const styles = StyleSheet.create({
   background: {

@@ -15,8 +15,9 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
-import  BASE_URL from '../url/BaseUrl' 
+import BASE_URL from '../url/BaseUrl'
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initLocalDB } from '../database/LocalDatabase';
 
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
 
@@ -74,6 +75,7 @@ function LoginScreen({ navigation }: LoginScreenProps): React.JSX.Element {
         return;
       }
 
+      await initLocalDB(data.user.xid);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
       await AsyncStorage.setItem('hasUsedApp', 'true');
 
@@ -324,7 +326,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#ffffff',
     marginBottom: 4,
-    paddingLeft:8,
+    paddingLeft: 8,
     fontWeight: '700',
     letterSpacing: 0.3,
     textTransform: 'uppercase',

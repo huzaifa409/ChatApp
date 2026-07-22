@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
+  Alert
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import Avatar from './Avatar';
@@ -19,12 +20,17 @@ import { downloadFile } from '../native/FileDownloader';
 import ReceivedMediaModal from './ReceivedMediaModal';
 
 
+
+
+
+
+
 export type ChatMessage = {
   id: number;
   sender_xid: string;
   receiver_xid: string;
   message_text: string;
-  message_type: 'text' | 'image' | 'video' | 'document';
+  message_type: 'text' | 'image' | 'video' | 'document' | 'deleted';
   media_data?: string | null;   // URL/path for image, video, document
   created_at: string;
 };
@@ -50,12 +56,18 @@ interface ChatPanelProps {
   onViewerNext: () => void;
   onViewerClose: () => void;
   onViewerSelectIndex: (index: number) => void;
-
-
   onRemoveFile: (id: string) => void;
-
   isSendingImage: boolean;
+  onDeleteForEveryone: (msg: ChatMessage) => void;
+  onDeleteForMe: (messageId: number) => void;
 }
+
+
+const resolveMediaUri = (mediaData: string): string => {
+  if (mediaData.startsWith('http')) return mediaData;
+  if (mediaData.startsWith('file://')) return mediaData;
+  return `${BASE_URL}${mediaData}`;
+};
 
 
 
@@ -78,6 +90,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onViewerSelectIndex,
   onRemoveFile,
   isSendingImage,
+  onDeleteForEveryone,
+  onDeleteForMe,
 }) => {
 
 
@@ -105,11 +119,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (!msg.media_data) return;
     setReceivedMediaId(msg.id);
   };
+  const handleLongPressMessage = (msg: ChatMessage, isMine: boolean) => {
+    if (msg.message_type === 'deleted') return;   // 👈 ADD THIS — nothing to delete further
 
+    const options: any[] = [];
+
+    options.push({
+      text: 'Delete for me',
+      style: 'destructive',
+      onPress: () => onDeleteForMe(msg.id),
+    });
+
+    if (isMine) {
+      options.push({
+        text: 'Delete for everyone',
+        style: 'destructive',
+        onPress: () => onDeleteForEveryone(msg),
+      });
+    }
+
+    options.push({ text: 'Cancel', style: 'cancel' });
+
+    Alert.alert('Delete message?', undefined, options);
+  };
   const handleAttachmentPress = (type: AttachmentType) => {
     setAttachMenuVisible(false);
     onAttachmentSelect(type);
   };
+
+
+  
 
   const iscurrent = selectedUser.xid === currentUserXid;
 
@@ -148,33 +187,51 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           style={styles.messagesList}
           contentContainerStyle={styles.messagesListContent}
         >
+
+
+
+
+
           {messages.map((msg) => {
             const isMine = msg.sender_xid === currentUserXid;
 
-            if (msg.message_type === 'image' && msg.media_data) {
-              const uri = msg.media_data.startsWith('http')
-                ? msg.media_data
-                : `${BASE_URL}${msg.media_data}`;
-
+            if (msg.message_type === 'deleted') {
               return (
                 <View
                   key={msg.id}
+                  style={[
+                    styles.messageBubble,
+                    isMine ? styles.messageBubbleMine : styles.messageBubbleTheirs,
+                    styles.deletedBubble,
+                  ]}
+                >
+                  <Icon name="slash" size={13} color="rgba(255,255,255,0.5)" style={{ marginRight: 6 }} />
+                  <Text style={styles.deletedText}>This message was deleted</Text>
+                </View>
+              );
+            }
+
+
+
+            if (msg.message_type === 'image' && msg.media_data) {
+              const uri = resolveMediaUri(msg.media_data);
+
+              return (
+                <TouchableOpacity
+                  key={msg.id}
+                  activeOpacity={0.9}
+                  onPress={() => handleOpenReceivedMedia(msg)}
+                  onLongPress={() => handleLongPressMessage(msg, isMine)}
                   style={isMine ? styles.imageBubbleMine : styles.imageBubbleTheirs}
                 >
-
-                  <TouchableOpacity
-                    style={styles.imageTouchable}
-                    activeOpacity={0.9}
-                    onPress={() => handleOpenReceivedMedia(msg)}
-                  >
+                  <View style={styles.imageTouchable} pointerEvents="none">
                     <Image
                       source={{ uri }}
                       style={styles.inlineImage}
                       resizeMode="cover"
                     />
-                  </TouchableOpacity>
-
-                </View>
+                  </View>
+                </TouchableOpacity>
               );
             }
 
@@ -185,6 +242,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   style={isMine ? styles.mediaCardMine : styles.mediaCardTheirs}
                   activeOpacity={0.8}
                   onPress={() => handleOpenReceivedMedia(msg)}
+                  onLongPress={() => handleLongPressMessage(msg, isMine)}
                 >
                   <View style={styles.videoThumb}>
                     <Icon name="play-circle" size={32} color="#ffffff" />
@@ -205,6 +263,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   ]}
                   activeOpacity={0.8}
                   onPress={() => handleOpenReceivedMedia(msg)}
+                  onLongPress={() => handleLongPressMessage(msg, isMine)}
                 >
                   <Icon name="file-text" size={20} color="#ffffff" style={{ marginRight: 8 }} />
                   <Text style={styles.messageText} numberOfLines={1}>
@@ -215,15 +274,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             }
 
             return (
-              <View
+              <TouchableOpacity
                 key={msg.id}
+                activeOpacity={1}
+                onLongPress={() => handleLongPressMessage(msg, isMine)}
                 style={[
                   styles.messageBubble,
                   isMine ? styles.messageBubbleMine : styles.messageBubbleTheirs,
                 ]}
               >
                 <Text style={styles.messageText}>{msg.message_text}</Text>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -336,11 +397,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   messagesArea: {
     flex: 1,
     position: 'relative',
+    paddingLeft: 10
   },
   chatContainer: {
     flex: 1,
@@ -397,13 +458,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#6C3CE9',
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
-    
+
   },
   messageBubbleTheirs: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
-    
+
   },
   messageText: {
     fontSize: 13.5,
@@ -602,7 +663,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
   },
- imageBubbleTheirs: {
+  imageBubbleTheirs: {
     alignSelf: 'flex-start',
     marginBottom: 10,
     borderRadius: 14,
@@ -644,6 +705,18 @@ const styles = StyleSheet.create({
   outsideCloseOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 2000,
+  },
+  deletedBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  deletedText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+    fontStyle: 'italic',
   },
 });
 

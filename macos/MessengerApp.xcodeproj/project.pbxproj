@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		18F21C153ACB611F4E00FBA9 /* libPods-MessengerApp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0E6B705A66378297E411EBD5 /* libPods-MessengerApp-macOS.a */; };
 		3900EF5FB9377D14D4D01174 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BE4AC94B6E76ECFE556D7398 /* PrivacyInfo.xcprivacy */; };
 		4D0CD78A2FFB94D300663885 /* VideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0CD7892FFB94D300663885 /* VideoPlayerView.swift */; };
 		4D0CD78C2FFB951F00663885 /* VideoPlayerViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D0CD78B2FFB951F00663885 /* VideoPlayerViewManager.swift */; };
@@ -23,13 +24,12 @@
 		514201522437B4B40078DB4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 514201512437B4B40078DB4F /* Assets.xcassets */; };
 		514201552437B4B40078DB4F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 514201532437B4B40078DB4F /* Main.storyboard */; };
 		514201582437B4B40078DB4F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 514201572437B4B40078DB4F /* main.m */; };
-		724EAFE2A66CE26D9A5EE590 /* libPods-MessengerApp-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F59333A38D2867F2B04A013 /* libPods-MessengerApp-macOS.a */; };
 		8FF3CCD62ED31BEA0F27876A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BE4AC94B6E76ECFE556D7398 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0E6B705A66378297E411EBD5 /* libPods-MessengerApp-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MessengerApp-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* MessengerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MessengerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		3F59333A38D2867F2B04A013 /* libPods-MessengerApp-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MessengerApp-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D0CD7892FFB94D300663885 /* VideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerView.swift; sourceTree = "<group>"; };
 		4D0CD78B2FFB951F00663885 /* VideoPlayerViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerViewManager.swift; sourceTree = "<group>"; };
 		4D0CD78D2FFB958500663885 /* VideoPlayerViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VideoPlayerViewManager.m; sourceTree = "<group>"; };
@@ -42,7 +42,6 @@
 		4DC445112FF7D82B00970EE9 /* MessengerApp-macOS-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "MessengerApp-macOS-Bridging-Header.h"; sourceTree = "<group>"; };
 		4DC445122FF7D82B00970EE9 /* ImagePickerModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePickerModule.swift; sourceTree = "<group>"; };
 		4DC445142FF7D8F000970EE9 /* ImagePickerModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImagePickerModule.m; sourceTree = "<group>"; };
-		4F347A8ABE405B4A630EC4B8 /* Pods-MessengerApp-macOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MessengerApp-macOS.debug.xcconfig"; path = "Target Support Files/Pods-MessengerApp-macOS/Pods-MessengerApp-macOS.debug.xcconfig"; sourceTree = "<group>"; };
 		514201492437B4B30078DB4F /* MessengerApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MessengerApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5142014B2437B4B30078DB4F /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		5142014C2437B4B30078DB4F /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
@@ -51,8 +50,9 @@
 		514201562437B4B40078DB4F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		514201572437B4B40078DB4F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		514201592437B4B40078DB4F /* MessengerApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MessengerApp.entitlements; sourceTree = "<group>"; };
-		9F0A5AC4D905F60AF22C115F /* Pods-MessengerApp-macOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MessengerApp-macOS.release.xcconfig"; path = "Target Support Files/Pods-MessengerApp-macOS/Pods-MessengerApp-macOS.release.xcconfig"; sourceTree = "<group>"; };
+		760F16B56C4EDB7CD369D130 /* Pods-MessengerApp-macOS.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MessengerApp-macOS.release.xcconfig"; path = "Target Support Files/Pods-MessengerApp-macOS/Pods-MessengerApp-macOS.release.xcconfig"; sourceTree = "<group>"; };
 		BE4AC94B6E76ECFE556D7398 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		CB27EF609DC2C3D60B416DF5 /* Pods-MessengerApp-macOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MessengerApp-macOS.debug.xcconfig"; path = "Target Support Files/Pods-MessengerApp-macOS/Pods-MessengerApp-macOS.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -68,7 +68,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				724EAFE2A66CE26D9A5EE590 /* libPods-MessengerApp-macOS.a in Frameworks */,
+				18F21C153ACB611F4E00FBA9 /* libPods-MessengerApp-macOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,7 +79,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				3F59333A38D2867F2B04A013 /* libPods-MessengerApp-macOS.a */,
+				0E6B705A66378297E411EBD5 /* libPods-MessengerApp-macOS.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -113,8 +113,8 @@
 		7AAB93E5E2D63ABBE093371C /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				4F347A8ABE405B4A630EC4B8 /* Pods-MessengerApp-macOS.debug.xcconfig */,
-				9F0A5AC4D905F60AF22C115F /* Pods-MessengerApp-macOS.release.xcconfig */,
+				CB27EF609DC2C3D60B416DF5 /* Pods-MessengerApp-macOS.debug.xcconfig */,
+				760F16B56C4EDB7CD369D130 /* Pods-MessengerApp-macOS.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -175,12 +175,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5142015A2437B4B40078DB4F /* Build configuration list for PBXNativeTarget "MessengerApp-macOS" */;
 			buildPhases = (
-				5B47FDA625A9EA7CDB88EE19 /* [CP] Check Pods Manifest.lock */,
+				413FFEA51C3ED6473E7037C1 /* [CP] Check Pods Manifest.lock */,
 				514201452437B4B30078DB4F /* Sources */,
 				514201462437B4B30078DB4F /* Frameworks */,
 				514201472437B4B30078DB4F /* Resources */,
 				381D8A6E24576A4E00465D17 /* Bundle React Native code and images */,
-				5FFF16746C95A433563C1CB5 /* [CP] Copy Pods Resources */,
+				94930161A6DFB283D069E39E /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -268,7 +268,7 @@
 		};
 		381D8A6E24576A4E00465D17 /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 8;
 			files = (
 			);
 			inputFileListPaths = (
@@ -280,11 +280,11 @@
 			);
 			outputPaths = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
 			shellScript = "export NODE_BINARY=node\n../node_modules/react-native-macos/scripts/react-native-xcode.sh\n";
 		};
-		5B47FDA625A9EA7CDB88EE19 /* [CP] Check Pods Manifest.lock */ = {
+		413FFEA51C3ED6473E7037C1 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -306,7 +306,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		5FFF16746C95A433563C1CB5 /* [CP] Copy Pods Resources */ = {
+		94930161A6DFB283D069E39E /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -427,24 +427,28 @@
 		};
 		5142015B2437B4B40078DB4F /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4F347A8ABE405B4A630EC4B8 /* Pods-MessengerApp-macOS.debug.xcconfig */;
+			baseConfigurationReference = CB27EF609DC2C3D60B416DF5 /* Pods-MessengerApp-macOS.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CURRENT_PROJECT_VERSION = 2026072000;
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = "MessengerApp-macos/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MessengerApp;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mess.engerx;
 				PRODUCT_NAME = MessengerApp;
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "MessengerApp-macOS/MessengerApp-macOS-Bridging-Header.h";
@@ -455,24 +459,28 @@
 		};
 		5142015C2437B4B40078DB4F /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9F0A5AC4D905F60AF22C115F /* Pods-MessengerApp-macOS.release.xcconfig */;
+			baseConfigurationReference = 760F16B56C4EDB7CD369D130 /* Pods-MessengerApp-macOS.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CURRENT_PROJECT_VERSION = 2026072000;
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = "MessengerApp-macos/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = MessengerApp;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.mess.engerx;
 				PRODUCT_NAME = MessengerApp;
 				SDKROOT = macosx;
 				SWIFT_OBJC_BRIDGING_HEADER = "MessengerApp-macOS/MessengerApp-macOS-Bridging-Header.h";
@@ -541,7 +549,10 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -602,7 +613,10 @@
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
-				OTHER_LDFLAGS = "$(inherited)  ";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					" ",
+				);
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;

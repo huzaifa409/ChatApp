@@ -8,6 +8,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import { SocketProvider } from './src/socket/SocketContext';
+import { initLocalDB } from './src/database/LocalDatabase';   
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,32 +25,33 @@ function App(): React.JSX.Element {
   const [initialUser, setInitialUser] = useState<{ name: string; xid: string } | null>(null);
 
   useEffect(() => {
-    const checkAuthState = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('user');
-        if (storedUser) {
-          // User already logged in — go straight to Home
-          setInitialUser(JSON.parse(storedUser));
-          setInitialRoute('Home');
-          return;
-        }
+  const checkAuthState = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        await initLocalDB(parsedUser.xid);
+        setInitialUser(parsedUser);
+        setInitialRoute('Home');
+        return;
+      }
 
-        const hasUsedApp = await AsyncStorage.getItem('hasUsedApp');
-        if (hasUsedApp === 'true') {
-          // Returning user, but currently logged out
-          setInitialRoute('Login');
-        } else {
-          // Brand new user, never used the app before
-          setInitialRoute('Register');
-        }
-      } catch (err) {
-        console.error('Error checking auth state:', err);
+      const hasUsedApp = await AsyncStorage.getItem('hasUsedApp');
+      if (hasUsedApp === 'true') {
+        setInitialRoute('Login');
+      } else {
         setInitialRoute('Register');
       }
-    };
+    } catch (err) {
+      console.error('Error checking auth state:', err);
+      setInitialRoute('Register');
+    }
+  };
 
-    checkAuthState();
-  }, []);
+  checkAuthState();
+}, []);
+
+
 
   // Show a simple loading spinner while we check AsyncStorage
   if (!initialRoute) {

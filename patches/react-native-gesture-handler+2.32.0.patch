@@ -1,0 +1,57 @@
+diff --git a/node_modules/react-native-gesture-handler/apple/RNGestureHandler.mm b/node_modules/react-native-gesture-handler/apple/RNGestureHandler.mm
+index b79554f..f5d9693 100644
+--- a/node_modules/react-native-gesture-handler/apple/RNGestureHandler.mm
++++ b/node_modules/react-native-gesture-handler/apple/RNGestureHandler.mm
+@@ -13,6 +13,7 @@
+ #ifdef RCT_NEW_ARCH_ENABLED
+ #import <React/RCTParagraphComponentView.h>
+ #import <React/RCTScrollViewComponentView.h>
++#import <React/RCTViewComponentView.h>
+ #else
+ #import <React/RCTScrollView.h>
+ #endif
+@@ -490,10 +491,11 @@ + (RNGestureHandler *)findGestureHandlerByRecognizer:(UIGestureRecognizer *)reco
+         return candidateRecognizer.gestureHandler;
+       }
+     }
+-
++#ifdef RCT_NEW_ARCH_ENABLED
+     if ([view isKindOfClass:[RCTViewComponentView class]]) {
+       return nil;
+     }
++#endif
+ 
+     view = view.superview;
+   }
+diff --git a/node_modules/react-native-gesture-handler/apple/RNGestureHandlerManager.mm b/node_modules/react-native-gesture-handler/apple/RNGestureHandlerManager.mm
+index d9799b3..e1ae829 100644
+--- a/node_modules/react-native-gesture-handler/apple/RNGestureHandlerManager.mm
++++ b/node_modules/react-native-gesture-handler/apple/RNGestureHandlerManager.mm
+@@ -197,12 +197,14 @@ - (void)maybeBindHandler:(nonnull NSNumber *)handlerTag
+ 
+   // I think it should be moved to RNNativeViewHandler, but that would require
+   // additional logic for setting contentView.reactTag, this works for now
++#ifdef RCT_NEW_ARCH_ENABLED
+   if ([view isKindOfClass:[RCTViewComponentView class]]) {
+     RCTViewComponentView *componentView = (RCTViewComponentView *)view;
+     if (componentView.contentView != nil) {
+       view = componentView.contentView;
+     }
+   }
++#endif
+ 
+   RNGestureHandler *handler = [_registry handlerWithTag:handlerTag];
+ 
+@@ -416,6 +418,12 @@ - (void)sendEvent:(RNGestureHandlerStateChange *)event withActionType:(RNGesture
+   }
+ }
+ 
++- (void)sendEventForDirectEvent:(RNGestureHandlerStateChange *)event
++{
++  // Delivers the event to JS as a direct event (used in old architecture).
++  [_eventDispatcher sendEvent:event];
++}
++
+ - (void)sendEventForReanimated:(RNGestureHandlerStateChange *)event
+ {
+   // Delivers the event to Reanimated.

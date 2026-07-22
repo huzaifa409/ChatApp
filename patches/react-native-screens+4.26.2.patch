@@ -1,0 +1,1608 @@
+diff --git a/node_modules/react-native-screens/src/components/gamma/stack/header/StackHeaderConfig.macos.tsx b/node_modules/react-native-screens/src/components/gamma/stack/header/StackHeaderConfig.macos.tsx
+new file mode 100644
+index 0000000..17e46ff
+--- /dev/null
++++ b/node_modules/react-native-screens/src/components/gamma/stack/header/StackHeaderConfig.macos.tsx
+@@ -0,0 +1,141 @@
++import React, { useCallback, useEffect } from 'react';
++import type { StackHeaderConfigProps } from './StackHeaderConfig.types';
++import StackHeaderConfigIOSNativeComponent, {
++  MenuItemPressEvent,
++  MenuSelectionChangeEvent,
++} from '../../../../fabric/gamma/stack/StackHeaderConfigIOSNativeComponent';
++import type { StackHeaderItemPlacement } from './ios/StackHeaderItem.ios.types';
++import { StackHeaderItemSpacerPlacement } from './ios/StackHeaderItemSpacer.ios.types';
++import StackHeaderItemSpacer from './ios/StackHeaderItemSpacer.ios';
++import StackHeaderItem from './ios/StackHeaderItem.ios';
++import { NativeSyntheticEvent, StyleSheet } from 'react-native';
++import type {
++  StackHeaderInlineCustomItemIOS,
++  StackHeaderInlineItemIOS,
++  StackHeaderSpacerItemIOS,
++  StackHeaderTitleCustomItemIOS,
++} from './StackHeaderConfig.ios.types';
++import { findMenuElementByIdInItems, validateMenuCallbacks } from './utils';
++
++/**
++ * EXPERIMENTAL API, MIGHT CHANGE W/O ANY NOTICE
++ */
++export default function StackHeaderConfig(props: StackHeaderConfigProps) {
++  // android props are safely dropped
++  // eslint-disable-next-line @typescript-eslint/no-unused-vars
++  const { ios, android, ...restProps } = props;
++
++  const {
++    leadingItems,
++    trailingItems,
++    titleItem,
++    subtitleItem,
++    largeSubtitleItem,
++    largeTitle,
++    largeSubtitle,
++    largeTitleEnabled,
++  } = ios ?? {};
++
++  const handleMenuItemPress = useCallback(
++    (event: NativeSyntheticEvent<MenuItemPressEvent>) => {
++      const items = Array.of(
++        ...(leadingItems ?? []).filter(it => it && it.type === 'item'),
++        ...(trailingItems ?? []).filter(it => it && it.type === 'item'),
++      );
++      const menuElement = findMenuElementByIdInItems(
++        items,
++        event.nativeEvent.menuItemId,
++      );
++      if (menuElement && menuElement.type === 'menuItem') {
++        menuElement.onPress?.();
++      }
++    },
++    [leadingItems, trailingItems],
++  );
++
++  const allMenuItems = [
++    ...(leadingItems ?? []),
++    ...(trailingItems ?? []),
++  ].filter(it => it && it.type === 'item');
++
++  const handleSelectionChange = useCallback(
++    (event: NativeSyntheticEvent<MenuSelectionChangeEvent>) => {
++      const { menuId, selectedMenuItemIds } = event.nativeEvent;
++      const menu = findMenuElementByIdInItems(allMenuItems, menuId);
++      if (menu && menu.type === 'menu') {
++        menu.onSelectionChange?.(selectedMenuItemIds);
++      }
++    },
++    [allMenuItems],
++  );
++
++  useEffect(() => {
++    for (const item of allMenuItems) {
++      if ('menu' in item && item.menu) {
++        validateMenuCallbacks(item.menu);
++      }
++    }
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [leadingItems, trailingItems]);
++
++  return (
++    <StackHeaderConfigIOSNativeComponent
++      {...restProps}
++      collapsable={false}
++      largeTitle={largeTitle}
++      largeSubtitle={largeSubtitle}
++      largeTitleEnabled={!!largeTitleEnabled}
++      style={styles.config}
++      onMenuItemPress={handleMenuItemPress}
++      onMenuSelectionChange={handleSelectionChange}>
++      {leadingItems?.map(item => makeItemViewFromItem(item, 'leading'))}
++      {titleItem && makeItemViewFromItem(titleItem, 'title')}
++      {subtitleItem && makeItemViewFromItem(subtitleItem, 'subtitle')}
++      {largeSubtitleItem &&
++        makeItemViewFromItem(largeSubtitleItem, 'largeSubtitle')}
++      {trailingItems?.map(item => makeItemViewFromItem(item, 'trailing'))}
++    </StackHeaderConfigIOSNativeComponent>
++  );
++}
++
++function makeItemViewFromItem(
++  item:
++    | StackHeaderInlineItemIOS
++    | StackHeaderInlineCustomItemIOS
++    | StackHeaderTitleCustomItemIOS
++    | StackHeaderSpacerItemIOS,
++  placement: StackHeaderItemPlacement,
++) {
++  if ('type' in item && item.type === 'spacer') {
++    const { id, ...rest } = item;
++
++    if (!(placement === 'leading' || placement === 'trailing')) {
++      console.warn(
++        `[Stack] Invalid placement for spacer: "${placement}", defaulting to "trailing"`,
++      );
++      placement = 'trailing';
++    }
++
++    return (
++      <StackHeaderItemSpacer
++        key={id}
++        placement={placement as StackHeaderItemSpacerPlacement}
++        {...rest}
++      />
++    );
++  }
++
++  const { id, ...rest } = item;
++
++  return (
++    <StackHeaderItem key={id} itemId={id} placement={placement} {...rest} />
++  );
++}
++
++const styles = StyleSheet.create({
++  config: {
++    position: 'absolute',
++    left: 0,
++    top: 0,
++  },
++});
+diff --git a/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItem.macos.tsx b/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItem.macos.tsx
+new file mode 100644
+index 0000000..2758c32
+--- /dev/null
++++ b/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItem.macos.tsx
+@@ -0,0 +1,40 @@
++import React, { useCallback } from 'react';
++import StackHeaderItemIOSNativeComponent from '../../../../../fabric/gamma/stack/StackHeaderItemIOSNativeComponent';
++import type { HeaderItemPressEvent } from '../../../../../fabric/gamma/stack/StackHeaderItemIOSNativeComponent';
++import type { StackHeaderItemProps } from './StackHeaderItem.ios.types';
++import { NativeSyntheticEvent, StyleSheet } from 'react-native';
++
++export default function StackHeaderItem(props: StackHeaderItemProps) {
++  const { render, onPress, ...rest } = props;
++
++  // `rest.menu` includes some JS callback within nested menu specification
++  // codegen strips JS functions and replaces them with NULLT and keys of such type
++  // are omitted inside RNSConvertFollyDynamicToId so we can safely pass `rest.menu` as-is
++
++  const handlePress = useCallback(
++    (_event: NativeSyntheticEvent<HeaderItemPressEvent>) => {
++      onPress?.();
++    },
++    [onPress],
++  );
++
++  return (
++    <StackHeaderItemIOSNativeComponent
++      {...rest}
++      // We need to tell iOS that we want the handler to be attached only when we actually require it
++      // because doing so makes the menu appear on long press instead of tap
++      respondsToOnPress={!!onPress}
++      onHeaderItemPress={handlePress}
++      style={styles.config}>
++      {render?.()}
++    </StackHeaderItemIOSNativeComponent>
++  );
++}
++
++const styles = StyleSheet.create({
++  config: {
++    position: 'absolute',
++    left: 0,
++    top: 0,
++  },
++});
+diff --git a/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItemSpacer.macos.tsx b/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItemSpacer.macos.tsx
+new file mode 100644
+index 0000000..48816a3
+--- /dev/null
++++ b/node_modules/react-native-screens/src/components/gamma/stack/header/ios/StackHeaderItemSpacer.macos.tsx
+@@ -0,0 +1,20 @@
++import React from 'react';
++import StackHeaderItemSpacerIOSNativeComponent from '../../../../../fabric/gamma/stack/StackHeaderItemSpacerIOSNativeComponent';
++import type { StackHeaderItemSpacerProps } from './StackHeaderItemSpacer.ios.types';
++import { StyleSheet } from 'react-native';
++
++export default function StackHeaderItemSpacer(
++  props: StackHeaderItemSpacerProps,
++) {
++  return (
++    <StackHeaderItemSpacerIOSNativeComponent {...props} style={styles.config} />
++  );
++}
++
++const styles = StyleSheet.create({
++  config: {
++    position: 'absolute',
++    left: 0,
++    top: 0,
++  },
++});
+diff --git a/node_modules/react-native-screens/src/components/tabs/host/TabsHost.macos.tsx b/node_modules/react-native-screens/src/components/tabs/host/TabsHost.macos.tsx
+new file mode 100644
+index 0000000..72e3ff5
+--- /dev/null
++++ b/node_modules/react-native-screens/src/components/tabs/host/TabsHost.macos.tsx
+@@ -0,0 +1,79 @@
++'use client';
++
++import React from 'react';
++import { StyleSheet } from 'react-native';
++import TabsHostIOSNativeComponent, {
++  type NativeProps as TabsHostIOSNativeComponentProps,
++} from '../../../fabric/tabs/TabsHostIOSNativeComponent';
++import type { TabsHostProps } from './TabsHost.types';
++import { RNSLog } from '../../../private';
++import TabsBottomAccessory from '../bottom-accessory/TabsBottomAccessory';
++import TabsBottomAccessoryContent from '../bottom-accessory/TabsBottomAccessoryContent';
++import { isIOS26OrHigher } from '../../helpers/PlatformUtils';
++import { useTabsHost } from './useTabsHost';
++
++function TabsHost(props: TabsHostProps) {
++  RNSLog.log(`TabsHost render`);
++
++  // android props are safely dropped
++  // eslint-disable-next-line @typescript-eslint/no-unused-vars
++  const { ios, android, ...baseProps } = props;
++
++  const {
++    children,
++    direction,
++    nativeContainerStyle,
++    onTabSelected,
++    navStateRequest,
++    ...filteredBaseProps
++  } = baseProps;
++
++  const componentNodeRef =
++    React.useRef<React.Component<TabsHostIOSNativeComponentProps>>(null);
++
++  const { onTabSelected: onTabSelectedCallback } =
++    useTabsHost<TabsHostIOSNativeComponentProps>({
++      componentNodeRef,
++      onTabSelected,
++    });
++
++  return (
++    <TabsHostIOSNativeComponent
++      style={styles.fillParent}
++      navStateRequest={navStateRequest}
++      onTabSelected={onTabSelectedCallback}
++      nativeContainerBackgroundColor={nativeContainerStyle?.backgroundColor}
++      // @ts-ignore suppress ref - debug only
++      ref={componentNodeRef}
++      {...filteredBaseProps}
++      // iOS-specific
++      layoutDirection={direction}
++      tabBarControllerMode={ios?.tabBarControllerMode}
++      tabBarMinimizeBehavior={ios?.tabBarMinimizeBehavior}
++      tabBarTintColor={ios?.tabBarTintColor}
++      bottomAccessoryHidden={ios?.bottomAccessoryHidden}
++      onMoreTabSelected={ios?.onMoreTabSelected}>
++      {children}
++      {ios?.bottomAccessory && isIOS26OrHigher && (
++        <TabsBottomAccessory>
++          <TabsBottomAccessoryContent environment="regular">
++            {ios.bottomAccessory('regular')}
++          </TabsBottomAccessoryContent>
++          <TabsBottomAccessoryContent environment="inline">
++            {ios.bottomAccessory('inline')}
++          </TabsBottomAccessoryContent>
++        </TabsBottomAccessory>
++      )}
++    </TabsHostIOSNativeComponent>
++  );
++}
++
++export default TabsHost;
++
++const styles = StyleSheet.create({
++  fillParent: {
++    flex: 1,
++    width: '100%',
++    height: '100%',
++  },
++});
+diff --git a/node_modules/react-native-screens/src/components/tabs/screen/TabsScreen.macos.tsx b/node_modules/react-native-screens/src/components/tabs/screen/TabsScreen.macos.tsx
+new file mode 100644
+index 0000000..75f5717
+--- /dev/null
++++ b/node_modules/react-native-screens/src/components/tabs/screen/TabsScreen.macos.tsx
+@@ -0,0 +1,232 @@
++'use client';
++
++import React from 'react';
++import {
++  ImageResolvedAssetSource,
++  StyleSheet,
++  processColor,
++  type ImageSourcePropType,
++} from 'react-native';
++import TabsScreenIOSNativeComponent, {
++  type IconType,
++  type NativeProps as TabsScreenIOSNativeComponentProps,
++  type Appearance,
++  type ItemAppearance,
++  type ItemStateAppearance,
++} from '../../../fabric/tabs/TabsScreenIOSNativeComponent';
++import type {
++  TabsScreenAppearanceIOS,
++  TabsScreenItemAppearanceIOS,
++  TabsScreenItemStateAppearanceIOS,
++} from './TabsScreen.ios.types';
++import type { TabsScreenProps } from './TabsScreen.types';
++import type { PlatformIconIOS } from '../../../types';
++import { useTabsScreen } from './useTabsScreen';
++
++function TabsScreen(props: TabsScreenProps) {
++  // android props are safely dropped
++  // eslint-disable-next-line @typescript-eslint/no-unused-vars
++  const { ios, android, ...baseProps } = props;
++
++  const componentNodeRef =
++    React.useRef<React.Component<TabsScreenIOSNativeComponentProps>>(null);
++
++  const {
++    onDidAppear,
++    onDidDisappear,
++    onWillAppear,
++    onWillDisappear,
++    children,
++    style,
++    ...filteredBaseProps
++  } = baseProps;
++
++  const { lifecycleCallbacks } =
++    useTabsScreen<TabsScreenIOSNativeComponentProps>({
++      componentNodeRef,
++      onDidAppear,
++      onDidDisappear,
++      onWillAppear,
++      onWillDisappear,
++      screenKey: filteredBaseProps.screenKey,
++    });
++
++  const iconProps = parseIconsToNativeProps(ios?.icon, ios?.selectedIcon);
++
++  return (
++    <TabsScreenIOSNativeComponent
++      collapsable={false}
++      style={[style, styles.fillParent]}
++      // @ts-ignore - This is debug only anyway
++      ref={componentNodeRef}
++      {...lifecycleCallbacks}
++      {...iconProps}
++      {...filteredBaseProps}
++      // iOS-specific
++      isTitleUndefined={
++        baseProps.title === null || baseProps.title === undefined
++      }
++      standardAppearance={mapAppearanceToNativeProp(ios?.standardAppearance)}
++      scrollEdgeAppearance={mapAppearanceToNativeProp(
++        ios?.scrollEdgeAppearance,
++      )}
++      userInterfaceStyle={ios?.experimental_userInterfaceStyle}
++      systemItem={ios?.systemItem}
++      overrideScrollViewContentInsetAdjustmentBehavior={
++        ios?.overrideScrollViewContentInsetAdjustmentBehavior
++      }>
++      {children}
++    </TabsScreenIOSNativeComponent>
++  );
++}
++
++function mapAppearanceToNativeProp(
++  appearance?: TabsScreenAppearanceIOS,
++): Appearance | undefined {
++  if (!appearance) return undefined;
++
++  const {
++    stacked,
++    inline,
++    compactInline,
++    tabBarBackgroundColor,
++    tabBarShadowColor,
++  } = appearance;
++
++  return {
++    ...appearance,
++    stacked: mapItemAppearanceToNativeProp(stacked),
++    inline: mapItemAppearanceToNativeProp(inline),
++    compactInline: mapItemAppearanceToNativeProp(compactInline),
++    tabBarBackgroundColor: processColor(tabBarBackgroundColor),
++    tabBarShadowColor: processColor(tabBarShadowColor),
++  };
++}
++
++function mapItemAppearanceToNativeProp(
++  itemAppearance?: TabsScreenItemAppearanceIOS,
++): ItemAppearance | undefined {
++  if (!itemAppearance) return undefined;
++
++  const { normal, selected, focused, disabled } = itemAppearance;
++
++  return {
++    ...itemAppearance,
++    normal: mapItemStateAppearanceToNativeProp(normal),
++    selected: mapItemStateAppearanceToNativeProp(selected),
++    focused: mapItemStateAppearanceToNativeProp(focused),
++    disabled: mapItemStateAppearanceToNativeProp(disabled),
++  };
++}
++
++function mapItemStateAppearanceToNativeProp(
++  itemStateAppearance?: TabsScreenItemStateAppearanceIOS,
++): ItemStateAppearance | undefined {
++  if (!itemStateAppearance) return undefined;
++
++  const {
++    tabBarItemTitleFontColor,
++    tabBarItemIconColor,
++    tabBarItemBadgeBackgroundColor,
++    tabBarItemTitleFontWeight,
++  } = itemStateAppearance;
++
++  return {
++    ...itemStateAppearance,
++    tabBarItemTitleFontColor: processColor(tabBarItemTitleFontColor),
++    tabBarItemIconColor: processColor(tabBarItemIconColor),
++    tabBarItemBadgeBackgroundColor: processColor(
++      tabBarItemBadgeBackgroundColor,
++    ),
++    tabBarItemTitleFontWeight:
++      tabBarItemTitleFontWeight !== undefined
++        ? String(tabBarItemTitleFontWeight)
++        : undefined,
++  };
++}
++
++function parseIconsToNativeProps(
++  icon: PlatformIconIOS | undefined,
++  selectedIcon: PlatformIconIOS | undefined,
++): {
++  imageIconResource?: ImageResolvedAssetSource | undefined;
++  drawableIconResourceName?: string | undefined;
++  iconType?: IconType | undefined;
++  iconImageSource?: ImageSourcePropType | undefined;
++  iconResourceName?: string | undefined;
++  selectedIconImageSource?: ImageSourcePropType | undefined;
++  selectedIconResourceName?: string | undefined;
++} {
++  const parsedIcon = parseIconToNativeProps(icon);
++  const parsedSelectedIcon = parseIconToNativeProps(selectedIcon);
++
++  if (
++    parsedIcon.iconType !== undefined &&
++    parsedSelectedIcon.iconType !== undefined &&
++    parsedIcon.iconType !== parsedSelectedIcon.iconType
++  ) {
++    throw new Error('[RNScreens] icon and selectedIcon must be same type.');
++  } else if (
++    parsedIcon.iconType === undefined &&
++    parsedSelectedIcon.iconType !== undefined
++  ) {
++    throw new Error(
++      '[RNScreens] To use selectedIcon prop, the icon prop must also be provided.',
++    );
++  }
++
++  return {
++    iconType: parsedIcon.iconType,
++    iconImageSource: parsedIcon.iconImageSource,
++    iconResourceName: parsedIcon.iconResourceName,
++    selectedIconImageSource: parsedSelectedIcon.iconImageSource,
++    selectedIconResourceName: parsedSelectedIcon.iconResourceName,
++  };
++}
++
++function parseIconToNativeProps(icon: PlatformIconIOS | undefined): {
++  iconType?: IconType | undefined;
++  iconImageSource?: ImageSourcePropType | undefined;
++  iconResourceName?: string | undefined;
++} {
++  if (!icon) {
++    return {};
++  }
++
++  if (icon.type === 'sfSymbol') {
++    return {
++      iconType: 'sfSymbol',
++      iconResourceName: icon.name,
++    };
++  } else if (icon.type === 'imageSource') {
++    return {
++      iconType: 'image',
++      iconImageSource: icon.imageSource,
++    };
++  } else if (icon.type === 'templateSource') {
++    return {
++      iconType: 'template',
++      iconImageSource: icon.templateSource,
++    };
++  } else if (icon.type === 'xcasset') {
++    return {
++      iconType: 'xcasset',
++      iconResourceName: icon.name,
++    };
++  } else {
++    throw new Error(
++      '[RNScreens] Incorrect icon format for iOS. You must provide `sfSymbol`, `imageSource`, `templateSource` or `xcasset`.',
++    );
++  }
++}
++
++export default TabsScreen;
++
++const styles = StyleSheet.create({
++  fillParent: {
++    position: 'absolute',
++    flex: 1,
++    width: '100%',
++    height: '100%',
++  },
++});
+diff --git a/node_modules/react-native-screens/src/fabric/ModalScreenNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ModalScreenNativeComponent.ts
+index 171e399..1a279a0 100644
+--- a/node_modules/react-native-screens/src/fabric/ModalScreenNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ModalScreenNativeComponent.ts
+@@ -64,27 +64,27 @@ type ScrollEdgeEffect = 'automatic' | 'hard' | 'soft' | 'hidden';
+ type OptionalBoolean = 'undefined' | 'false' | 'true';
+ 
+ export interface NativeProps extends ViewProps {
+-  onAppear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onDisappear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onDismissed?: CT.DirectEventHandler<ScreenDismissedEvent> | undefined;
++  onAppear?: CT.DirectEventHandler<ScreenEvent>;
++  onDisappear?: CT.DirectEventHandler<ScreenEvent>;
++  onDismissed?: CT.DirectEventHandler<ScreenDismissedEvent>;
+   onNativeDismissCancelled?:
+-    | CT.DirectEventHandler<ScreenDismissedEvent>
+-    | undefined;
+-  onWillAppear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<ScreenEvent> | undefined;
++    CT.DirectEventHandler<ScreenDismissedEvent>
++   ;
++  onWillAppear?: CT.DirectEventHandler<ScreenEvent>;
++  onWillDisappear?: CT.DirectEventHandler<ScreenEvent>;
+   onHeaderHeightChange?:
+-    | CT.DirectEventHandler<HeaderHeightChangeEvent>
+-    | undefined;
++    CT.DirectEventHandler<HeaderHeightChangeEvent>
++   ;
+   onTransitionProgress?:
+-    | CT.DirectEventHandler<TransitionProgressEvent>
+-    | undefined;
+-  onGestureCancel?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onHeaderBackButtonClicked?: CT.DirectEventHandler<ScreenEvent> | undefined;
++    CT.DirectEventHandler<TransitionProgressEvent>
++   ;
++  onGestureCancel?: CT.DirectEventHandler<ScreenEvent>;
++  onHeaderBackButtonClicked?: CT.DirectEventHandler<ScreenEvent>;
+   onSheetDetentChanged?:
+-    | CT.DirectEventHandler<SheetDetentChangedEvent>
+-    | undefined;
++    CT.DirectEventHandler<SheetDetentChangedEvent>
++   ;
+   screenId?: CT.WithDefault<string, ''>;
+-  sheetAllowedDetents?: number[] | undefined;
++  sheetAllowedDetents?: number[];
+   sheetLargestUndimmedDetent?: CT.WithDefault<CT.Int32, -1>;
+   sheetGrabberVisible?: CT.WithDefault<boolean, false>;
+   sheetCornerRadius?: CT.WithDefault<CT.Float, -1.0>;
+@@ -93,30 +93,30 @@ export interface NativeProps extends ViewProps {
+   sheetElevation?: CT.WithDefault<CT.Int32, 24>;
+   sheetShouldOverflowTopInset?: CT.WithDefault<boolean, false>;
+   sheetDefaultResizeAnimationEnabled?: CT.WithDefault<boolean, true>;
+-  customAnimationOnSwipe?: boolean | undefined;
++  customAnimationOnSwipe?: boolean;
+   fullScreenSwipeEnabled?: CT.WithDefault<OptionalBoolean, 'undefined'>;
+   fullScreenSwipeShadowEnabled?: CT.WithDefault<boolean, true>;
+-  homeIndicatorHidden?: boolean | undefined;
+-  preventNativeDismiss?: boolean | undefined;
++  homeIndicatorHidden?: boolean;
++  preventNativeDismiss?: boolean;
+   gestureEnabled?: CT.WithDefault<boolean, true>;
+-  statusBarColor?: ColorValue | undefined;
+-  statusBarHidden?: boolean | undefined;
+-  screenOrientation?: string | undefined;
+-  statusBarAnimation?: string | undefined;
+-  statusBarStyle?: string | undefined;
+-  statusBarTranslucent?: boolean | undefined;
+-  gestureResponseDistance?: GestureResponseDistanceType | undefined;
++  statusBarColor?: ColorValue;
++  statusBarHidden?: boolean;
++  screenOrientation?: string;
++  statusBarAnimation?: string;
++  statusBarStyle?: string;
++  statusBarTranslucent?: boolean;
++  gestureResponseDistance?: GestureResponseDistanceType;
+   stackPresentation?: CT.WithDefault<StackPresentation, 'push'>;
+   stackAnimation?: CT.WithDefault<StackAnimation, 'default'>;
+   transitionDuration?: CT.WithDefault<CT.Int32, 500>;
+   replaceAnimation?: CT.WithDefault<ReplaceAnimation, 'pop'>;
+   swipeDirection?: CT.WithDefault<SwipeDirection, 'horizontal'>;
+-  hideKeyboardOnSwipe?: boolean | undefined;
++  hideKeyboardOnSwipe?: boolean;
+   activityState?: CT.WithDefault<CT.Float, -1.0>;
+-  navigationBarColor?: ColorValue | undefined;
+-  navigationBarTranslucent?: boolean | undefined;
+-  navigationBarHidden?: boolean | undefined;
+-  nativeBackButtonDismissalEnabled?: boolean | undefined;
++  navigationBarColor?: ColorValue;
++  navigationBarTranslucent?: boolean;
++  navigationBarHidden?: boolean;
++  nativeBackButtonDismissalEnabled?: boolean;
+   bottomScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+   leftScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+   rightScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+diff --git a/node_modules/react-native-screens/src/fabric/ScreenNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ScreenNativeComponent.ts
+index 4fa781c..c863e34 100644
+--- a/node_modules/react-native-screens/src/fabric/ScreenNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ScreenNativeComponent.ts
+@@ -64,27 +64,27 @@ type ScrollEdgeEffect = 'automatic' | 'hard' | 'soft' | 'hidden';
+ type OptionalBoolean = 'undefined' | 'false' | 'true';
+ 
+ export interface NativeProps extends ViewProps {
+-  onAppear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onDisappear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onDismissed?: CT.DirectEventHandler<ScreenDismissedEvent> | undefined;
++  onAppear?: CT.DirectEventHandler<ScreenEvent>;
++  onDisappear?: CT.DirectEventHandler<ScreenEvent>;
++  onDismissed?: CT.DirectEventHandler<ScreenDismissedEvent>;
+   onNativeDismissCancelled?:
+-    | CT.DirectEventHandler<ScreenDismissedEvent>
+-    | undefined;
+-  onWillAppear?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<ScreenEvent> | undefined;
++    CT.DirectEventHandler<ScreenDismissedEvent>
++   ;
++  onWillAppear?: CT.DirectEventHandler<ScreenEvent>;
++  onWillDisappear?: CT.DirectEventHandler<ScreenEvent>;
+   onHeaderHeightChange?:
+-    | CT.DirectEventHandler<HeaderHeightChangeEvent>
+-    | undefined;
++    CT.DirectEventHandler<HeaderHeightChangeEvent>
++   ;
+   onTransitionProgress?:
+-    | CT.DirectEventHandler<TransitionProgressEvent>
+-    | undefined;
+-  onGestureCancel?: CT.DirectEventHandler<ScreenEvent> | undefined;
+-  onHeaderBackButtonClicked?: CT.DirectEventHandler<ScreenEvent> | undefined;
++    CT.DirectEventHandler<TransitionProgressEvent>
++   ;
++  onGestureCancel?: CT.DirectEventHandler<ScreenEvent>;
++  onHeaderBackButtonClicked?: CT.DirectEventHandler<ScreenEvent>;
+   onSheetDetentChanged?:
+-    | CT.DirectEventHandler<SheetDetentChangedEvent>
+-    | undefined;
++    CT.DirectEventHandler<SheetDetentChangedEvent>
++   ;
+   screenId?: CT.WithDefault<string, ''>;
+-  sheetAllowedDetents?: number[] | undefined;
++  sheetAllowedDetents?: number[];
+   sheetLargestUndimmedDetent?: CT.WithDefault<CT.Int32, -1>;
+   sheetGrabberVisible?: CT.WithDefault<boolean, false>;
+   sheetCornerRadius?: CT.WithDefault<CT.Float, -1.0>;
+@@ -93,30 +93,30 @@ export interface NativeProps extends ViewProps {
+   sheetElevation?: CT.WithDefault<CT.Int32, 24>;
+   sheetShouldOverflowTopInset?: CT.WithDefault<boolean, false>;
+   sheetDefaultResizeAnimationEnabled?: CT.WithDefault<boolean, true>;
+-  customAnimationOnSwipe?: boolean | undefined;
++  customAnimationOnSwipe?: boolean;
+   fullScreenSwipeEnabled?: CT.WithDefault<OptionalBoolean, 'undefined'>;
+   fullScreenSwipeShadowEnabled?: CT.WithDefault<boolean, true>;
+-  homeIndicatorHidden?: boolean | undefined;
+-  preventNativeDismiss?: boolean | undefined;
++  homeIndicatorHidden?: boolean;
++  preventNativeDismiss?: boolean;
+   gestureEnabled?: CT.WithDefault<boolean, true>;
+-  statusBarColor?: ColorValue | undefined;
+-  statusBarHidden?: boolean | undefined;
+-  screenOrientation?: string | undefined;
+-  statusBarAnimation?: string | undefined;
+-  statusBarStyle?: string | undefined;
+-  statusBarTranslucent?: boolean | undefined;
+-  gestureResponseDistance?: GestureResponseDistanceType | undefined;
++  statusBarColor?: ColorValue;
++  statusBarHidden?: boolean;
++  screenOrientation?: string;
++  statusBarAnimation?: string;
++  statusBarStyle?: string;
++  statusBarTranslucent?: boolean;
++  gestureResponseDistance?: GestureResponseDistanceType;
+   stackPresentation?: CT.WithDefault<StackPresentation, 'push'>;
+   stackAnimation?: CT.WithDefault<StackAnimation, 'default'>;
+   transitionDuration?: CT.WithDefault<CT.Int32, 500>;
+   replaceAnimation?: CT.WithDefault<ReplaceAnimation, 'pop'>;
+   swipeDirection?: CT.WithDefault<SwipeDirection, 'horizontal'>;
+-  hideKeyboardOnSwipe?: boolean | undefined;
++  hideKeyboardOnSwipe?: boolean;
+   activityState?: CT.WithDefault<CT.Float, -1.0>;
+-  navigationBarColor?: ColorValue | undefined;
+-  navigationBarTranslucent?: boolean | undefined;
+-  navigationBarHidden?: boolean | undefined;
+-  nativeBackButtonDismissalEnabled?: boolean | undefined;
++  navigationBarColor?: ColorValue;
++  navigationBarTranslucent?: boolean;
++  navigationBarHidden?: boolean;
++  nativeBackButtonDismissalEnabled?: boolean;
+   bottomScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+   leftScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+   rightScrollEdgeEffect?: CT.WithDefault<ScrollEdgeEffect, 'automatic'>;
+diff --git a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
+index a80d9fe..716d36b 100644
+--- a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderConfigNativeComponent.ts
+@@ -41,45 +41,45 @@ type BlurEffect =
+ type UserInterfaceStyle = 'unspecified' | 'light' | 'dark';
+ 
+ export interface NativeProps extends ViewProps {
+-  onAttached?: CT.DirectEventHandler<OnAttachedEvent> | undefined;
+-  onDetached?: CT.DirectEventHandler<OnDetachedEvent> | undefined;
+-  backgroundColor?: ColorValue | undefined;
+-  backTitle?: string | undefined;
+-  backTitleFontFamily?: string | undefined;
+-  backTitleFontSize?: CT.Int32 | undefined;
++  onAttached?: CT.DirectEventHandler<null>;
++  onDetached?: CT.DirectEventHandler<null>;
++  backgroundColor?: ColorValue;
++  backTitle?: string;
++  backTitleFontFamily?: string;
++  backTitleFontSize?: CT.Int32;
+   backTitleVisible?: CT.WithDefault<boolean, 'true'>;
+-  color?: ColorValue | undefined;
++  color?: ColorValue;
+   direction?: CT.WithDefault<DirectionType, 'ltr'>;
+-  hidden?: boolean | undefined;
+-  hideShadow?: boolean | undefined;
+-  largeTitle?: boolean | undefined;
+-  largeTitleFontFamily?: string | undefined;
+-  largeTitleFontSize?: CT.Int32 | undefined;
+-  largeTitleFontWeight?: string | undefined;
+-  largeTitleBackgroundColor?: ColorValue | undefined;
+-  largeTitleHideShadow?: boolean | undefined;
+-  largeTitleColor?: ColorValue | undefined;
+-  translucent?: boolean | undefined;
+-  title?: string | undefined;
+-  titleFontFamily?: string | undefined;
+-  titleFontSize?: CT.Int32 | undefined;
+-  titleFontWeight?: string | undefined;
+-  titleColor?: ColorValue | undefined;
+-  disableBackButtonMenu?: boolean | undefined;
++  hidden?: boolean;
++  hideShadow?: boolean;
++  largeTitle?: boolean;
++  largeTitleFontFamily?: string;
++  largeTitleFontSize?: CT.Int32;
++  largeTitleFontWeight?: string;
++  largeTitleBackgroundColor?: ColorValue;
++  largeTitleHideShadow?: boolean;
++  largeTitleColor?: ColorValue;
++  translucent?: boolean;
++  title?: string;
++  titleFontFamily?: string;
++  titleFontSize?: CT.Int32;
++  titleFontWeight?: string;
++  titleColor?: ColorValue;
++  disableBackButtonMenu?: boolean;
+   backButtonDisplayMode?: CT.WithDefault<BackButtonDisplayMode, 'default'>;
+-  hideBackButton?: boolean | undefined;
+-  backButtonInCustomView?: boolean | undefined;
++  hideBackButton?: boolean;
++  backButtonInCustomView?: boolean;
+   blurEffect?: CT.WithDefault<BlurEffect, 'none'>;
+   // TODO: implement this props on iOS
+-  topInsetEnabled?: boolean | undefined;
+-  headerLeftBarButtonItems?: CT.UnsafeMixed[] | undefined;
+-  headerRightBarButtonItems?: CT.UnsafeMixed[] | undefined;
++  topInsetEnabled?: boolean;
++  headerLeftBarButtonItems?: CT.UnsafeMixed[];
++  headerRightBarButtonItems?: CT.UnsafeMixed[];
+   onPressHeaderBarButtonItem?:
+-    | CT.DirectEventHandler<OnPressHeaderBarButtonItemEvent>
+-    | undefined;
++    CT.DirectEventHandler<OnPressHeaderBarButtonItemEvent>
++   ;
+   onPressHeaderBarButtonMenuItem?:
+-    | CT.DirectEventHandler<OnPressHeaderBarButtonMenuItemEvent>
+-    | undefined;
++    CT.DirectEventHandler<OnPressHeaderBarButtonMenuItemEvent>
++   ;
+   synchronousShadowStateUpdatesEnabled?: CT.WithDefault<boolean, true>;
+ 
+   // Experimental
+@@ -88,7 +88,7 @@ export interface NativeProps extends ViewProps {
+   consumeLeftInset?: CT.WithDefault<boolean, true>;
+   consumeRightInset?: CT.WithDefault<boolean, true>;
+   consumeBottomInset?: CT.WithDefault<boolean, true>;
+-  legacyTopInsetBehavior?: boolean | undefined;
++  legacyTopInsetBehavior?: boolean;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>(
+diff --git a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+index 7d3fbfe..8b2944a 100644
+--- a/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ScreenStackHeaderSubviewNativeComponent.ts
+@@ -3,17 +3,11 @@
+ import { codegenNativeComponent } from 'react-native';
+ import type { CodegenTypes as CT, ViewProps } from 'react-native';
+ 
+-export type HeaderSubviewTypes =
+-  | 'back'
+-  | 'right'
+-  | 'left'
+-  | 'title'
+-  | 'center'
+-  | 'searchBar';
++type HeaderSubviewTypes = 'back' | 'right' | 'left' | 'title' | 'center' | 'searchBar';
+ 
+ export interface NativeProps extends ViewProps {
+   type?: CT.WithDefault<HeaderSubviewTypes, 'left'>;
+-  hidesSharedBackground?: boolean | undefined;
++  hidesSharedBackground?: boolean;
+   synchronousShadowStateUpdatesEnabled?: CT.WithDefault<boolean, true>;
+ }
+ 
+diff --git a/node_modules/react-native-screens/src/fabric/ScreenStackNativeComponent.ts b/node_modules/react-native-screens/src/fabric/ScreenStackNativeComponent.ts
+index 00ddbbc..49dcb80 100644
+--- a/node_modules/react-native-screens/src/fabric/ScreenStackNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/ScreenStackNativeComponent.ts
+@@ -7,11 +7,9 @@ import type { CodegenTypes as CT, ViewProps, ColorValue } from 'react-native';
+ type FinishTransitioningEvent = Readonly<{}>;
+ 
+ export interface NativeProps extends ViewProps {
+-  nativeContainerBackgroundColor?: ColorValue | undefined;
++  nativeContainerBackgroundColor?: ColorValue;
+ 
+-  onFinishTransitioning?:
+-    | CT.DirectEventHandler<FinishTransitioningEvent>
+-    | undefined;
++  onFinishTransitioning?: CT.DirectEventHandler<FinishTransitioningEvent>;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSScreenStack', {});
+diff --git a/node_modules/react-native-screens/src/fabric/SearchBarNativeComponent.ts b/node_modules/react-native-screens/src/fabric/SearchBarNativeComponent.ts
+index cb87683..e324949 100644
+--- a/node_modules/react-native-screens/src/fabric/SearchBarNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/SearchBarNativeComponent.ts
+@@ -12,11 +12,11 @@ import type {
+ export type SearchBarEvent = Readonly<{}>;
+ 
+ export type SearchButtonPressedEvent = Readonly<{
+-  text?: string | undefined;
++  text?: string;
+ }>;
+ 
+ export type ChangeTextEvent = Readonly<{
+-  text?: string | undefined;
++  text?: string;
+ }>;
+ 
+ type SearchBarPlacement =
+@@ -37,39 +37,39 @@ type AutoCapitalizeType =
+ type OptionalBoolean = 'undefined' | 'false' | 'true';
+ 
+ export interface NativeProps extends ViewProps {
+-  onSearchFocus?: CT.DirectEventHandler<SearchBarEvent> | null | undefined;
+-  onSearchBlur?: CT.DirectEventHandler<SearchBarEvent> | null | undefined;
++  onSearchFocus?: CT.DirectEventHandler<SearchBarEvent>;
++  onSearchBlur?: CT.DirectEventHandler<SearchBarEvent>;
+   onSearchButtonPress?:
+-    | CT.DirectEventHandler<SearchButtonPressedEvent>
++    CT.DirectEventHandler<SearchButtonPressedEvent>
+     | null
+-    | undefined;
++   ;
+   onCancelButtonPress?:
+-    | CT.DirectEventHandler<SearchBarEvent>
++    CT.DirectEventHandler<SearchBarEvent>
+     | null
+-    | undefined;
+-  onChangeText?: CT.DirectEventHandler<ChangeTextEvent> | null | undefined;
++   ;
++  onChangeText?: CT.DirectEventHandler<ChangeTextEvent>;
+   hideWhenScrolling?: CT.WithDefault<boolean, true>;
+   autoCapitalize?: CT.WithDefault<AutoCapitalizeType, 'systemDefault'>;
+-  placeholder?: string | undefined;
++  placeholder?: string;
+   placement?: CT.WithDefault<SearchBarPlacement, 'automatic'>;
+   allowToolbarIntegration?: CT.WithDefault<boolean, true>;
+   obscureBackground?: CT.WithDefault<OptionalBoolean, 'undefined'>;
+   hideNavigationBar?: CT.WithDefault<OptionalBoolean, 'undefined'>;
+-  cancelButtonText?: string | undefined;
++  cancelButtonText?: string;
+   // TODO: implement these on iOS
+-  barTintColor?: ColorValue | undefined;
+-  tintColor?: ColorValue | undefined;
+-  textColor?: ColorValue | undefined;
++  barTintColor?: ColorValue;
++  tintColor?: ColorValue;
++  textColor?: ColorValue;
+ 
+   // Android only
+   autoFocus?: CT.WithDefault<boolean, false>;
+-  disableBackButtonOverride?: boolean | undefined;
++  disableBackButtonOverride?: boolean;
+   // TODO: consider creating enum here
+-  inputType?: string | undefined;
+-  onClose?: CT.DirectEventHandler<SearchBarEvent> | null | undefined;
+-  onOpen?: CT.DirectEventHandler<SearchBarEvent> | null | undefined;
+-  hintTextColor?: ColorValue | undefined;
+-  headerIconColor?: ColorValue | undefined;
++  inputType?: string;
++  onClose?: CT.DirectEventHandler<SearchBarEvent>;
++  onOpen?: CT.DirectEventHandler<SearchBarEvent>;
++  hintTextColor?: ColorValue;
++  headerIconColor?: ColorValue;
+   shouldShowHintSearchIcon?: CT.WithDefault<boolean, true>;
+ }
+ 
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/modals/form-sheet/FormSheetHostNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/modals/form-sheet/FormSheetHostNativeComponent.ts
+index 7fccf3c..c8f21c1 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/modals/form-sheet/FormSheetHostNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/modals/form-sheet/FormSheetHostNativeComponent.ts
+@@ -13,25 +13,25 @@ type DetentChangedEvent = Readonly<{
+ interface NativeProps extends ViewProps {
+   // General
+   isOpen?: CT.WithDefault<boolean, false>;
+-  detents?: CT.Double[] | undefined;
++  detents?: CT.Double[];
+   prefersGrabberVisible?: CT.WithDefault<boolean, false>;
+   preferredCornerRadius?: CT.WithDefault<CT.Float, -1.0>;
+   largestUndimmedDetentIndex?: CT.WithDefault<CT.Int32, -1>;
+   initialDetentIndex?: CT.WithDefault<CT.Int32, 0>;
+   prefersScrollingExpandsWhenScrolledToEdge?: CT.WithDefault<boolean, true>;
+   preventNativeDismiss?: CT.WithDefault<boolean, false>;
+-  nativeContainerBackgroundColor?: ColorValue | undefined;
++  nativeContainerBackgroundColor?: ColorValue;
+   // Events
+-  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDismiss?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onNativeDismiss?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDismiss?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onNativeDismiss?: CT.DirectEventHandler<GenericEmptyEvent>;
+   onNativeDismissPrevented?:
+-    | CT.DirectEventHandler<GenericEmptyEvent>
+-    | undefined;
+-  onDetentChanged?: CT.DirectEventHandler<DetentChangedEvent> | undefined;
++    CT.DirectEventHandler<GenericEmptyEvent>
++   ;
++  onDetentChanged?: CT.DirectEventHandler<DetentChangedEvent>;
+ 
+   // Workaround helper that triggers a synchronous event to flush a pending
+   // shadow-node state update in the current event beat. Mirrors iOS's
+@@ -39,7 +39,7 @@ interface NativeProps extends ViewProps {
+   // to Java/Kotlin as of now.
+   // TODO: Remove when a synchronous state update API is exposed on Android.
+   // https://github.com/facebook/react-native/pull/56311
+-  onSyncFlush?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onSyncFlush?: CT.DirectEventHandler<GenericEmptyEvent>;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSFormSheetHost', {
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/split/SplitHostNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/split/SplitHostNativeComponent.ts
+index 9144483..23a05fc 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/split/SplitHostNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/split/SplitHostNativeComponent.ts
+@@ -78,7 +78,7 @@ interface NativeProps extends ViewProps {
+     SplitViewDisplayModeButtonVisibility,
+     'automatic'
+   >;
+-  columnMetrics?: ColumnMetrics | undefined;
++  columnMetrics?: ColumnMetrics;
+   orientation?: CT.WithDefault<SplitViewOrientation, 'inherit'>;
+   colorScheme?: CT.WithDefault<SplitViewColorScheme, 'inherit'>;
+   primaryBackgroundStyle?: CT.WithDefault<
+@@ -100,12 +100,12 @@ interface NativeProps extends ViewProps {
+ 
+   // Custom events
+ 
+-  onCollapse?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onCollapse?: CT.DirectEventHandler<GenericEmptyEvent>;
+   onDisplayModeWillChange?:
+-    | CT.DirectEventHandler<DisplayModeWillChangeEvent>
+-    | undefined;
+-  onExpand?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onInspectorHide?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++    CT.DirectEventHandler<DisplayModeWillChangeEvent>
++   ;
++  onExpand?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onInspectorHide?: CT.DirectEventHandler<GenericEmptyEvent>;
+ }
+ 
+ type ComponentType = HostComponent<NativeProps>;
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/split/SplitScreenNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/split/SplitScreenNativeComponent.ts
+index 14e3774..ce4438e 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/split/SplitScreenNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/split/SplitScreenNativeComponent.ts
+@@ -13,10 +13,10 @@ interface NativeProps extends ViewProps {
+   columnType?: CT.WithDefault<SplitScreenColumnType, 'column'>;
+ 
+   // Events
+-  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSSplitScreen', {
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigAndroidNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigAndroidNativeComponent.ts
+index 06b8e7f..67dc40f 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigAndroidNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigAndroidNativeComponent.ts
+@@ -33,27 +33,27 @@ type StackHeaderToolbarMenuItemTypeAndroid = 'action' | 'toggle' | 'automatic';
+ 
+ export interface StackHeaderToolbarMenuItemBaseAndroid {
+   id: string;
+-  title?: string | undefined;
+-  titleCondensed?: string | undefined;
+-  tooltipText?: string | undefined;
++  title?: string;
++  titleCondensed?: string;
++  tooltipText?: string;
+   hidden?: CT.WithDefault<boolean, false>;
+   disabled?: CT.WithDefault<boolean, false>;
+   showAsAction?: CT.WithDefault<
+     StackHeaderToolbarMenuItemShowAsActionAndroid,
+     'never'
+   >;
+-  drawableIconResourceName?: string | null | undefined;
+-  imageIconResource?: ImageSource | null | undefined;
+-  iconTintColorNormal?: ProcessedColorValue | null | undefined;
+-  iconTintColorPressed?: ProcessedColorValue | null | undefined;
+-  iconTintColorFocused?: ProcessedColorValue | null | undefined;
+-  iconTintColorDisabled?: ProcessedColorValue | null | undefined;
++  drawableIconResourceName?: string;
++  imageIconResource?: ImageSource;
++  iconTintColorNormal?: ProcessedColorValue;
++  iconTintColorPressed?: ProcessedColorValue;
++  iconTintColorFocused?: ProcessedColorValue;
++  iconTintColorDisabled?: ProcessedColorValue;
+ }
+ 
+ type StackHeaderToolbarMenuItemAndroid =
+   StackHeaderToolbarMenuItemBaseAndroid & {
+     type: 'menuItem';
+-    groupId?: string | undefined;
++    groupId?: string;
+     itemType?: CT.WithDefault<
+       StackHeaderToolbarMenuItemTypeAndroid,
+       'automatic'
+@@ -67,14 +67,14 @@ type StackHeaderToolbarMenuGroupAndroid = {
+ };
+ 
+ export type StackHeaderToolbarMenuBaseAndroid = {
+-  groups?: StackHeaderToolbarMenuGroupAndroid[] | undefined;
+-  children?: StackHeaderToolbarMenuElementAndroid[] | undefined;
++  groups?: StackHeaderToolbarMenuGroupAndroid[];
++  children?: StackHeaderToolbarMenuElementAndroid[];
+ };
+ 
+ type StackHeaderToolbarMenuAndroid = StackHeaderToolbarMenuItemBaseAndroid &
+   StackHeaderToolbarMenuBaseAndroid & {
+     type: 'menu';
+-    menuTitle?: string | undefined;
++    menuTitle?: string;
+   };
+ 
+ export type StackHeaderToolbarMenuElementAndroid =
+@@ -82,7 +82,7 @@ export type StackHeaderToolbarMenuElementAndroid =
+   | StackHeaderToolbarMenuAndroid;
+ 
+ export interface NativeProps extends ViewProps {
+-  title?: string | undefined;
++  title?: string;
+   hidden?: CT.WithDefault<boolean, false>;
+   transparent?: CT.WithDefault<boolean, false>;
+   backButtonHidden?: CT.WithDefault<boolean, false>;
+@@ -90,11 +90,11 @@ export interface NativeProps extends ViewProps {
+   // Android-specific props
+   type?: CT.WithDefault<StackHeaderTypeAndroid, 'small'>;
+ 
+-  backButtonTintColorNormal?: ColorValue | undefined;
+-  backButtonTintColorPressed?: ColorValue | undefined;
+-  backButtonTintColorFocused?: ColorValue | undefined;
+-  backButtonDrawableIconResourceName?: string | undefined;
+-  backButtonImageIconResource?: ImageSource | undefined;
++  backButtonTintColorNormal?: ColorValue;
++  backButtonTintColorPressed?: ColorValue;
++  backButtonTintColorFocused?: ColorValue;
++  backButtonDrawableIconResourceName?: string;
++  backButtonImageIconResource?: ImageSource;
+ 
+   scrollFlagScroll?: CT.WithDefault<boolean, false>;
+   scrollFlagEnterAlways?: CT.WithDefault<boolean, false>;
+@@ -102,14 +102,14 @@ export interface NativeProps extends ViewProps {
+   scrollFlagExitUntilCollapsed?: CT.WithDefault<boolean, false>;
+   scrollFlagSnap?: CT.WithDefault<boolean, false>;
+ 
+-  toolbarMenu?: UnsafeMixed<StackHeaderToolbarMenuBaseAndroid> | undefined;
++  toolbarMenu?: UnsafeMixed<StackHeaderToolbarMenuBaseAndroid>;
+   toolbarMenuGroupDividerEnabled?: CT.WithDefault<boolean, false>;
+   onToolbarMenuItemPress?:
+-    | CT.DirectEventHandler<StackHeaderToolbarMenuItemPressEventAndroid>
+-    | undefined;
++    CT.DirectEventHandler<StackHeaderToolbarMenuItemPressEventAndroid>
++   ;
+   onToolbarMenuGroupSelectionChange?:
+-    | CT.DirectEventHandler<StackHeaderToolbarMenuGroupSelectionChangeEventAndroid>
+-    | undefined;
++    CT.DirectEventHandler<StackHeaderToolbarMenuGroupSelectionChangeEventAndroid>
++   ;
+ }
+ 
+ type ComponentType = HostComponent<NativeProps>;
+@@ -117,8 +117,8 @@ type ComponentType = HostComponent<NativeProps>;
+ export type StackHeaderToolbarMenuElementOptionsAndroid = Partial<
+   Omit<StackHeaderToolbarMenuItemBaseAndroid, 'id'>
+ > & {
+-  checked?: boolean | undefined;
+-  menuTitle?: string | undefined;
++  checked?: boolean;
++  menuTitle?: string;
+ };
+ 
+ export interface NativeCommands {
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigIOSNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigIOSNativeComponent.ts
+index 2b3739b..30e459b 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigIOSNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderConfigIOSNativeComponent.ts
+@@ -11,21 +11,21 @@ export type MenuSelectionChangeEvent = Readonly<{
+ }>;
+ 
+ export interface NativeProps extends ViewProps {
+-  title?: string | undefined;
+-  subtitle?: string | undefined;
++  title?: string;
++  subtitle?: string;
+   hidden?: CT.WithDefault<boolean, false>;
+   transparent?: CT.WithDefault<boolean, false>;
+   backButtonHidden?: CT.WithDefault<boolean, false>;
+ 
+   // iOS-specific props
+-  largeTitle?: string | undefined;
+-  largeSubtitle?: string | undefined;
++  largeTitle?: string;
++  largeSubtitle?: string;
+   largeTitleEnabled?: CT.WithDefault<boolean, false>;
+ 
+-  onMenuItemPress?: CT.DirectEventHandler<MenuItemPressEvent> | undefined;
++  onMenuItemPress?: CT.DirectEventHandler<MenuItemPressEvent>;
+   onMenuSelectionChange?:
+-    | CT.DirectEventHandler<MenuSelectionChangeEvent>
+-    | undefined;
++    CT.DirectEventHandler<MenuSelectionChangeEvent>
++   ;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSStackHeaderConfigIOS', {
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemIOSNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemIOSNativeComponent.ts
+index ae4a6d6..5a0cc10 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemIOSNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemIOSNativeComponent.ts
+@@ -14,14 +14,14 @@ export type Placement =
+ export type StackHeaderMenuItemIOS = {
+   id: string;
+   type: 'menuItem';
+-  title?: string | undefined;
+-  keepsMenuPresented?: boolean | undefined;
++  title?: string;
++  keepsMenuPresented?: boolean;
+ };
+ 
+ export type StackHeaderMenuIOS = {
+   id: string;
+   type: 'menu';
+-  title?: string | undefined;
++  title?: string;
+   children: StackHeaderMenuElementIOS[];
+ };
+ 
+@@ -34,11 +34,11 @@ export type HeaderItemPressEvent = Readonly<{}>;
+ 
+ export interface NativeProps extends ViewProps {
+   placement?: CT.WithDefault<Placement, 'trailing'>;
+-  itemId?: string | undefined;
+-  title?: string | undefined;
+-  menu?: UnsafeMixed<StackHeaderMenuIOS> | undefined;
++  itemId?: string;
++  title?: string;
++  menu?: UnsafeMixed<StackHeaderMenuIOS>;
+   respondsToOnPress?: CT.WithDefault<boolean, false>;
+-  onHeaderItemPress?: CT.DirectEventHandler<HeaderItemPressEvent> | undefined;
++  onHeaderItemPress?: CT.DirectEventHandler<HeaderItemPressEvent>;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSStackHeaderItemIOS', {
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemSpacerIOSNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemSpacerIOSNativeComponent.ts
+index a3466ea..60843ef 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemSpacerIOSNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/stack/StackHeaderItemSpacerIOSNativeComponent.ts
+@@ -9,7 +9,7 @@ type Placement = 'leading' | 'trailing';
+ export interface NativeProps extends ViewProps {
+   placement?: CT.WithDefault<Placement, 'trailing'>;
+   sizing?: CT.WithDefault<SpacerSize, 'flexible'>;
+-  width?: CT.Float | undefined;
++  width?: CT.Float;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>(
+diff --git a/node_modules/react-native-screens/src/fabric/gamma/stack/StackScreenNativeComponent.ts b/node_modules/react-native-screens/src/fabric/gamma/stack/StackScreenNativeComponent.ts
+index 5fa7ee2..0c6501b 100644
+--- a/node_modules/react-native-screens/src/fabric/gamma/stack/StackScreenNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/gamma/stack/StackScreenNativeComponent.ts
+@@ -21,16 +21,16 @@ export interface NativeProps extends ViewProps {
+ 
+   // Events
+ 
+-  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
+ 
+-  onDismiss?: CT.DirectEventHandler<OnDismissEventPayload> | undefined;
++  onDismiss?: CT.DirectEventHandler<OnDismissEventPayload>;
+ 
+   onNativeDismissPrevented?:
+-    | CT.DirectEventHandler<GenericEmptyEvent>
+-    | undefined;
++    CT.DirectEventHandler<GenericEmptyEvent>
++   ;
+ 
+   // Configuration
+ 
+diff --git a/node_modules/react-native-screens/src/fabric/safe-area/SafeAreaViewNativeComponent.ts b/node_modules/react-native-screens/src/fabric/safe-area/SafeAreaViewNativeComponent.ts
+index b3d0d2d..85928f1 100644
+--- a/node_modules/react-native-screens/src/fabric/safe-area/SafeAreaViewNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/safe-area/SafeAreaViewNativeComponent.ts
+@@ -14,7 +14,7 @@ export interface NativeProps extends ViewProps {
+         bottom: boolean;
+         left: boolean;
+       }>
+-    | undefined;
++   ;
+   // Android-only
+   insetType?: CT.WithDefault<InsetType, 'all'>;
+ }
+diff --git a/node_modules/react-native-screens/src/fabric/tabs/TabsBottomAccessoryNativeComponent.ts b/node_modules/react-native-screens/src/fabric/tabs/TabsBottomAccessoryNativeComponent.ts
+index 11b058b..8cdc57e 100644
+--- a/node_modules/react-native-screens/src/fabric/tabs/TabsBottomAccessoryNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/tabs/TabsBottomAccessoryNativeComponent.ts
+@@ -9,8 +9,8 @@ type EnvironmentChangeEvent = {
+ 
+ export interface NativeProps extends ViewProps {
+   onEnvironmentChange?:
+-    | CT.DirectEventHandler<EnvironmentChangeEvent>
+-    | undefined;
++    CT.DirectEventHandler<EnvironmentChangeEvent>
++   ;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSTabsBottomAccessory', {
+diff --git a/node_modules/react-native-screens/src/fabric/tabs/TabsHostAndroidNativeComponent.ts b/node_modules/react-native-screens/src/fabric/tabs/TabsHostAndroidNativeComponent.ts
+index 221ea81..d53aa99 100644
+--- a/node_modules/react-native-screens/src/fabric/tabs/TabsHostAndroidNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/tabs/TabsHostAndroidNativeComponent.ts
+@@ -46,17 +46,17 @@ export interface NativeProps extends ViewProps {
+   rejectStaleNavStateUpdates?: CT.WithDefault<boolean, false>;
+ 
+   // Events
+-  onTabSelected?: CT.DirectEventHandler<TabSelectedEvent> | undefined;
++  onTabSelected?: CT.DirectEventHandler<TabSelectedEvent>;
+   onTabSelectionRejected?:
+-    | CT.DirectEventHandler<TabSelectionRejectedEvent>
+-    | undefined;
++    CT.DirectEventHandler<TabSelectionRejectedEvent>
++   ;
+   onTabSelectionPrevented?:
+-    | CT.DirectEventHandler<TabSelectionPreventedEvent>
+-    | undefined;
++    CT.DirectEventHandler<TabSelectionPreventedEvent>
++   ;
+ 
+   // General
+   tabBarHidden?: CT.WithDefault<boolean, false>;
+-  nativeContainerBackgroundColor?: ColorValue | undefined;
++  nativeContainerBackgroundColor?: ColorValue;
+   colorScheme?: CT.WithDefault<TabsHostColorScheme, 'inherit'>;
+ 
+   // Android-specific props
+diff --git a/node_modules/react-native-screens/src/fabric/tabs/TabsHostIOSNativeComponent.ts b/node_modules/react-native-screens/src/fabric/tabs/TabsHostIOSNativeComponent.ts
+index 7700879..93e6bb6 100644
+--- a/node_modules/react-native-screens/src/fabric/tabs/TabsHostIOSNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/tabs/TabsHostIOSNativeComponent.ts
+@@ -61,18 +61,18 @@ export interface NativeProps extends ViewProps {
+   rejectStaleNavStateUpdates?: CT.WithDefault<boolean, false>;
+ 
+   // Events
+-  onTabSelected?: CT.DirectEventHandler<TabSelectedEvent> | undefined;
++  onTabSelected?: CT.DirectEventHandler<TabSelectedEvent>;
+   onTabSelectionRejected?:
+-    | CT.DirectEventHandler<TabSelectionRejectedEvent>
+-    | undefined;
++    CT.DirectEventHandler<TabSelectionRejectedEvent>
++   ;
+   onTabSelectionPrevented?:
+-    | CT.DirectEventHandler<TabSelectionPreventedEvent>
+-    | undefined;
+-  onMoreTabSelected?: CT.DirectEventHandler<MoreTabSelectedEvent> | undefined;
++    CT.DirectEventHandler<TabSelectionPreventedEvent>
++   ;
++  onMoreTabSelected?: CT.DirectEventHandler<MoreTabSelectedEvent>;
+ 
+   // General
+   tabBarHidden?: CT.WithDefault<boolean, false>;
+-  nativeContainerBackgroundColor?: ColorValue | undefined;
++  nativeContainerBackgroundColor?: ColorValue;
+   colorScheme?: CT.WithDefault<TabsHostColorScheme, 'inherit'>;
+ 
+   // We can't use `direction` name for this prop as it's also used by
+@@ -80,7 +80,7 @@ export interface NativeProps extends ViewProps {
+   layoutDirection?: CT.WithDefault<LayoutDirection, 'inherit'>;
+ 
+   // iOS-specific props
+-  tabBarTintColor?: ColorValue | undefined;
++  tabBarTintColor?: ColorValue;
+   tabBarMinimizeBehavior?: CT.WithDefault<TabBarMinimizeBehavior, 'automatic'>;
+   tabBarControllerMode?: CT.WithDefault<TabBarControllerMode, 'automatic'>;
+   bottomAccessoryHidden?: CT.WithDefault<boolean, false>;
+diff --git a/node_modules/react-native-screens/src/fabric/tabs/TabsScreenAndroidNativeComponent.ts b/node_modules/react-native-screens/src/fabric/tabs/TabsScreenAndroidNativeComponent.ts
+index 1041172..571ec86 100644
+--- a/node_modules/react-native-screens/src/fabric/tabs/TabsScreenAndroidNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/tabs/TabsScreenAndroidNativeComponent.ts
+@@ -24,16 +24,16 @@ type TabBarItemLabelVisibilityMode =
+   | 'unlabeled';
+ 
+ export type ItemStateAppearance = {
+-  tabBarItemTitleFontColor?: ProcessedColorValue | null | undefined;
+-  tabBarItemIconColor?: ProcessedColorValue | null | undefined;
++  tabBarItemTitleFontColor?: ProcessedColorValue;
++  tabBarItemIconColor?: ProcessedColorValue;
+ };
+ 
+ export type Appearance = {
+   // TabBar - Appearance
+-  tabBarBackgroundColor?: ProcessedColorValue | null | undefined;
++  tabBarBackgroundColor?: ProcessedColorValue;
+ 
+   // TabBarItem - Ripple
+-  tabBarItemRippleColor?: ProcessedColorValue | null | undefined;
++  tabBarItemRippleColor?: ProcessedColorValue;
+ 
+   // TabBarItem - Label layout
+   tabBarItemLabelVisibilityMode?: CT.WithDefault<
+@@ -42,47 +42,47 @@ export type Appearance = {
+   >;
+ 
+   // TabBarItem - State-dependent appearance
+-  normal?: ItemStateAppearance | undefined;
+-  selected?: ItemStateAppearance | undefined;
+-  focused?: ItemStateAppearance | undefined;
+-  disabled?: ItemStateAppearance | undefined;
++  normal?: ItemStateAppearance;
++  selected?: ItemStateAppearance;
++  focused?: ItemStateAppearance;
++  disabled?: ItemStateAppearance;
+ 
+   // TabBarItem - Active Indicator
+-  tabBarItemActiveIndicatorColor?: ProcessedColorValue | null | undefined;
++  tabBarItemActiveIndicatorColor?: ProcessedColorValue;
+   tabBarItemActiveIndicatorEnabled?: CT.WithDefault<boolean, true>;
+ 
+   // TabBarItem - Label
+-  tabBarItemTitleFontFamily?: string | undefined;
+-  tabBarItemTitleSmallLabelFontSize?: CT.Float | undefined;
+-  tabBarItemTitleLargeLabelFontSize?: CT.Float | undefined;
+-  tabBarItemTitleFontWeight?: string | undefined;
+-  tabBarItemTitleFontStyle?: string | undefined;
++  tabBarItemTitleFontFamily?: string;
++  tabBarItemTitleSmallLabelFontSize?: CT.Float;
++  tabBarItemTitleLargeLabelFontSize?: CT.Float;
++  tabBarItemTitleFontWeight?: string;
++  tabBarItemTitleFontStyle?: string;
+ 
+   // TabBarItem - Badge
+-  tabBarItemBadgeBackgroundColor?: ProcessedColorValue | null | undefined;
+-  tabBarItemBadgeTextColor?: ProcessedColorValue | null | undefined;
++  tabBarItemBadgeBackgroundColor?: ProcessedColorValue;
++  tabBarItemBadgeTextColor?: ProcessedColorValue;
+ };
+ 
+ // #endregion Android-specific helpers
+ 
+ export interface NativeProps extends ViewProps {
+   // Events
+-  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
+ 
+   // Control
+   screenKey: string;
+   preventNativeSelection?: CT.WithDefault<boolean, false>;
+ 
+   // General
+-  title?: string | undefined | null;
+-  badgeValue?: string | undefined;
++  title?: string | null;
++  badgeValue?: string;
+ 
+   // Accessibility
+-  tabBarItemTestID?: string | undefined;
+-  tabBarItemAccessibilityLabel?: string | undefined;
++  tabBarItemTestID?: string;
++  tabBarItemAccessibilityLabel?: string;
+ 
+   // Effects
+   specialEffects?:
+@@ -92,19 +92,19 @@ export interface NativeProps extends ViewProps {
+               popToRoot?: CT.WithDefault<boolean, true>;
+               scrollToTop?: CT.WithDefault<boolean, true>;
+             }
+-          | undefined;
++         ;
+       }
+-    | undefined;
++   ;
+ 
+   // Android-specific props
+   // Image handling
+-  drawableIconResourceName?: string | undefined;
+-  imageIconResource?: ImageSource | undefined;
+-  selectedDrawableIconResourceName?: string | undefined;
+-  selectedImageIconResource?: ImageSource | undefined;
++  drawableIconResourceName?: string;
++  imageIconResource?: ImageSource;
++  selectedDrawableIconResourceName?: string;
++  selectedImageIconResource?: ImageSource;
+ 
+   // Appearance
+-  standardAppearance?: Appearance | undefined;
++  standardAppearance?: Appearance;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('RNSTabsScreenAndroid', {
+diff --git a/node_modules/react-native-screens/src/fabric/tabs/TabsScreenIOSNativeComponent.ts b/node_modules/react-native-screens/src/fabric/tabs/TabsScreenIOSNativeComponent.ts
+index 45c286b..1fb0906 100644
+--- a/node_modules/react-native-screens/src/fabric/tabs/TabsScreenIOSNativeComponent.ts
++++ b/node_modules/react-native-screens/src/fabric/tabs/TabsScreenIOSNativeComponent.ts
+@@ -23,35 +23,35 @@ type GenericEmptyEvent = Readonly<{}>;
+ export type IconType = 'image' | 'template' | 'sfSymbol' | 'xcasset';
+ 
+ export type ItemStateAppearance = {
+-  tabBarItemTitleFontFamily?: string | undefined;
+-  tabBarItemTitleFontSize?: CT.Float | undefined;
+-  tabBarItemTitleFontWeight?: string | undefined;
+-  tabBarItemTitleFontStyle?: string | undefined;
+-  tabBarItemTitleFontColor?: ProcessedColorValue | null | undefined;
++  tabBarItemTitleFontFamily?: string;
++  tabBarItemTitleFontSize?: CT.Float;
++  tabBarItemTitleFontWeight?: string;
++  tabBarItemTitleFontStyle?: string;
++  tabBarItemTitleFontColor?: ProcessedColorValue;
+   tabBarItemTitlePositionAdjustment?:
+     | {
+-        horizontal?: CT.Float | undefined;
+-        vertical?: CT.Float | undefined;
++        horizontal?: CT.Float;
++        vertical?: CT.Float;
+       }
+-    | undefined;
+-  tabBarItemIconColor?: ProcessedColorValue | null | undefined;
+-  tabBarItemBadgeBackgroundColor?: ProcessedColorValue | null | undefined;
++   ;
++  tabBarItemIconColor?: ProcessedColorValue;
++  tabBarItemBadgeBackgroundColor?: ProcessedColorValue;
+ };
+ 
+ export type ItemAppearance = {
+-  normal?: ItemStateAppearance | undefined;
+-  selected?: ItemStateAppearance | undefined;
+-  focused?: ItemStateAppearance | undefined;
+-  disabled?: ItemStateAppearance | undefined;
++  normal?: ItemStateAppearance;
++  selected?: ItemStateAppearance;
++  focused?: ItemStateAppearance;
++  disabled?: ItemStateAppearance;
+ };
+ 
+ export type Appearance = {
+-  stacked?: ItemAppearance | undefined;
+-  inline?: ItemAppearance | undefined;
+-  compactInline?: ItemAppearance | undefined;
++  stacked?: ItemAppearance;
++  inline?: ItemAppearance;
++  compactInline?: ItemAppearance;
+ 
+-  tabBarBackgroundColor?: ProcessedColorValue | null | undefined;
+-  tabBarShadowColor?: ProcessedColorValue | null | undefined;
++  tabBarBackgroundColor?: ProcessedColorValue;
++  tabBarShadowColor?: ProcessedColorValue;
+   tabBarBlurEffect?: CT.WithDefault<BlurEffect, 'systemDefault'>;
+ };
+ 
+@@ -111,23 +111,23 @@ type UserInterfaceStyle = 'unspecified' | 'light' | 'dark';
+ 
+ export interface NativeProps extends ViewProps {
+   // Events
+-  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
+-  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent> | undefined;
++  onWillAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidAppear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onWillDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
++  onDidDisappear?: CT.DirectEventHandler<GenericEmptyEvent>;
+ 
+   // Control
+   screenKey: string;
+   preventNativeSelection?: CT.WithDefault<boolean, false>;
+ 
+   // General
+-  title?: string | undefined | null;
+-  badgeValue?: string | undefined;
++  title?: string | null;
++  badgeValue?: string;
+   orientation?: CT.WithDefault<Orientation, 'inherit'>;
+ 
+   // Accessibility
+-  tabBarItemTestID?: string | undefined;
+-  tabBarItemAccessibilityLabel?: string | undefined;
++  tabBarItemTestID?: string;
++  tabBarItemAccessibilityLabel?: string;
+ 
+   // Effects
+   specialEffects?:
+@@ -137,9 +137,9 @@ export interface NativeProps extends ViewProps {
+               popToRoot?: CT.WithDefault<boolean, true>;
+               scrollToTop?: CT.WithDefault<boolean, true>;
+             }
+-          | undefined;
++         ;
+       }
+-    | undefined;
++   ;
+ 
+   // iOS-specific props
+   // Tab config
+@@ -147,15 +147,15 @@ export interface NativeProps extends ViewProps {
+   systemItem?: CT.WithDefault<SystemItem, 'none'>;
+ 
+   // Appearance
+-  standardAppearance?: UnsafeMixed<Appearance> | undefined;
+-  scrollEdgeAppearance?: UnsafeMixed<Appearance> | undefined;
++  standardAppearance?: UnsafeMixed<Appearance>;
++  scrollEdgeAppearance?: UnsafeMixed<Appearance>;
+ 
+   // Icons
+   iconType?: CT.WithDefault<IconType, 'sfSymbol'>;
+-  iconImageSource?: ImageSource | undefined;
+-  iconResourceName?: string | undefined;
+-  selectedIconImageSource?: ImageSource | undefined;
+-  selectedIconResourceName?: string | undefined;
++  iconImageSource?: ImageSource;
++  iconResourceName?: string;
++  selectedIconImageSource?: ImageSource;
++  selectedIconResourceName?: string;
+ 
+   // ScrollView interactions
+   overrideScrollViewContentInsetAdjustmentBehavior?: CT.WithDefault<

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StyleSheet, View, ImageBackground, Alert, TouchableOpacity,Text} from 'react-native';
+import { SafeAreaView, StyleSheet, View, ImageBackground, Alert, TouchableOpacity, Text } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../App';
 import Header, { AttachmentType } from '../components/Header';
@@ -12,6 +12,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSocket } from '../socket/SocketContext';
 import { useChat } from '../hooks/useChat';
+import { closeLocalDB } from '../database/LocalDatabase';
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'Home'>;
 
@@ -33,6 +34,7 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
     conversations, selectedUser, messages, messageInput, setMessageInput,
     selectSearchResult, openConversation, sendMessage, sendFiles,
     backFromChat, isSendingImage,
+    deleteForEveryone, deleteForMe,
   } = useChat(user.xid, socket);
 
   const showWelcomeContent = !viewerVisible && files.length === 0 && !selectedUser;
@@ -75,19 +77,20 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
   const handleClose = () => { setViewerVisible(false); setFiles([]); setCurrentIndex(0); };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('user');
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        },
+  Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    { text: 'Cancel', style: 'cancel' },
+    {
+      text: 'Sign Out',
+      style: 'destructive',
+      onPress: async () => {
+        await closeLocalDB();
+        await AsyncStorage.removeItem('user');
+        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       },
-    ]);
-  };
-  
+    },
+  ]);
+};
+
 
   // const handleResetForTesting = async () => {
   //   await AsyncStorage.clear();
@@ -149,6 +152,8 @@ function HomeScreen({ route, navigation }: HomeScreenProps): React.JSX.Element {
                 onViewerSelectIndex={setCurrentIndex}
                 isSendingImage={isSendingImage}
                 onRemoveFile={handleRemoveFile}
+                onDeleteForEveryone={deleteForEveryone}   // 👈 ADD THIS
+                onDeleteForMe={deleteForMe}
               />
             ) : (
               showWelcomeContent && (

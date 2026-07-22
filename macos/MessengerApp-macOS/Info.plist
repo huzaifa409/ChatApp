@@ -47,5 +47,7 @@
 	<array>
 		<string>Feather.ttf</string>
 	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>Main.storyboard</string>
 </dict>
 </plist>

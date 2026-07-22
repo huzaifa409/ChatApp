@@ -1,0 +1,29 @@
+diff --git a/node_modules/@react-native/codegen/lib/parsers/typescript/components/componentsUtils.js b/node_modules/@react-native/codegen/lib/parsers/typescript/components/componentsUtils.js
+index 3ba47fe..ed632d3 100644
+--- a/node_modules/@react-native/codegen/lib/parsers/typescript/components/componentsUtils.js
++++ b/node_modules/@react-native/codegen/lib/parsers/typescript/components/componentsUtils.js
+@@ -324,8 +324,10 @@ function getTypeAnnotationForArray(
+         type: 'FloatTypeAnnotation',
+       };
+     default:
+-      type;
+-      throw new Error(`Unknown prop type for "${name}": ${type}`);
++      console.warn(`Unknown array prop type for "${name}": ${type}`);
++      return {
++        type: 'ObjectTypeAnnotation'
++      };
+   }
+ }
+ function setDefaultValue(common, defaultValue) {
+@@ -407,7 +409,10 @@ function getTypeAnnotation(
+         `Cannot use "${type}" type annotation for "${name}": must use a specific function type like BubblingEventHandler, or DirectEventHandler`,
+       );
+     default:
+-      throw new Error(`Unknown prop type for "${name}": "${type}"`);
++      console.warn(`Unknown prop type for "${name}": "${type}"`);
++      return {
++        type: 'ObjectTypeAnnotation'
++      };
+   }
+ }
+ function getSchemaInfo(property, types) {

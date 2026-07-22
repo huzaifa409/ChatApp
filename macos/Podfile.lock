@@ -1209,6 +1209,10 @@ PODS:
     - React-jsiexecutor
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
+  - react-native-safe-area-context (4.14.1):
+    - React-Core
+  - react-native-sqlite-storage (6.0.1):
+    - React-Core
   - React-NativeModulesApple (0.78.6):
     - glog
     - React-callinvoker
@@ -1480,11 +1484,11 @@ PODS:
     - React-logger (= 0.78.6)
     - React-perflogger (= 0.78.6)
     - React-utils (= 0.78.6)
-  - RNCAsyncStorage (1.23.1):
+  - RNCAsyncStorage (1.24.0):
     - React-Core
   - RNCClipboard (1.16.3):
     - React-Core
-  - RNGestureHandler (2.16.2):
+  - RNGestureHandler (2.32.0):
     - DoubleConversion
     - glog
     - RCT-Folly (= 2024.11.18.00)
@@ -1547,6 +1551,8 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native-macos/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native-macos/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native-macos/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-sqlite-storage (from `../node_modules/react-native-sqlite-storage`)
   - React-NativeModulesApple (from `../node_modules/react-native-macos/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native-macos/ReactCommon/reactperflogger`)
   - React-performancetimeline (from `../node_modules/react-native-macos/ReactCommon/react/performance/timeline`)
@@ -1653,6 +1659,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-macos/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native-macos/ReactCommon/react/nativemodule/microtasks"
+  react-native-safe-area-context:
+    :path: "../node_modules/react-native-safe-area-context"
+  react-native-sqlite-storage:
+    :path: "../node_modules/react-native-sqlite-storage"
   React-NativeModulesApple:
     :path: "../node_modules/react-native-macos/ReactCommon/react/nativemodule/core/platform/ios"
   React-perflogger:
@@ -1755,6 +1765,8 @@ SPEC CHECKSUMS:
   React-logger: 8e5c62114dc6a8ae688d6c655dac1bc988892e64
   React-Mapbuffer: f0ac9fd9d7d860258ca7972d1660a05a3550a344
   React-microtasksnativemodule: 964c92e955968e8d086fcfcc4d6d34a587af38eb
+  react-native-safe-area-context: 141eca0fd4e4191288dfc8b96a7c7e1c2983447a
+  react-native-sqlite-storage: f6d515e1c446d1e6d026aa5352908a25d4de3261
   React-NativeModulesApple: 3021d910a10f52e5fd565cce8518d2f7ab8fa512
   React-perflogger: e13bcc7a9221c3709d3c8178d9e7f709be4f1350
   React-performancetimeline: 985dbe15d489dd2004d7de871ff464050e90efb4
@@ -1782,9 +1794,9 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 3a460ab76f1149df99ed324bb1c764b76de7a730
   ReactCodegen: 4fdcda55518b6fbc14e919d871a2d38856dcd469
   ReactCommon: 3d985abe5510d5d3955a3a60b4dd9ad2dbe309dc
-  RNCAsyncStorage: 826b603ae9c0f88b5ac4e956801f755109fa4d5c
+  RNCAsyncStorage: ec53e44dc3e75b44aa2a9f37618a49c3bc080a7a
   RNCClipboard: dfeb43751adff21e588657b5b6c888c72f3aa68e
-  RNGestureHandler: 43b36fd7d683d2f7501c7efff86d9bed9af74ba9
+  RNGestureHandler: 5be5200fbd82a7798220da80ed862258d5465b11
   SocketRocket: 03f7111df1a343b162bf5b06ead333be808e1e0a
   Yoga: 187db0b2a37012c01dac36afb886a29b92bfd943
 

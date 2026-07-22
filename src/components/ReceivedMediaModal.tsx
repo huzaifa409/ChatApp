@@ -23,6 +23,21 @@ interface ReceivedMediaModalProps {
   onClose: () => void;
 }
 
+// Resolves any media_data value to a renderable URI/path.
+// - 'file://...'  -> already local (background-downloaded or sender's own original), strip prefix for native Image.getSize/VideoPlayerView/DocumentPreviewView which expect a raw path
+// - 'http...'     -> remote URL, used as-is (fallback only, shouldn't normally be hit for a message we're viewing)
+// - otherwise     -> relative server path, prefix with BASE_URL
+const resolveLocalPath = (mediaData: string): string | null => {
+  if (mediaData.startsWith('file://')) return mediaData.replace('file://', '');
+  return null; // not local — caller should download it
+};
+
+const resolveDisplayUri = (mediaData: string): string => {
+  if (mediaData.startsWith('http')) return mediaData;
+  if (mediaData.startsWith('file://')) return mediaData;
+  return `${BASE_URL}${mediaData}`;
+};
+
 const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
   visible,
   messages,
@@ -79,19 +94,25 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
       : null;
 
   useEffect(() => {
-    if (!currentMsg) return;
+    if (!currentMsg || !currentMsg.media_data) return;
 
     let isCancelled = false;
     const fetchMedia = async () => {
+      // Already local (background-downloaded on receive, or sender's own original) — use directly, no re-download.
+      const localPath = resolveLocalPath(currentMsg.media_data!);
+      if (localPath) {
+        setCurrentLocalPath(localPath);
+        setDownloading(false);
+        return;
+      }
+
       setDownloading(true);
       setCurrentLocalPath(null);
-      const remoteUrl = currentMsg.media_data!.startsWith('http')
-        ? currentMsg.media_data!
-        : `${BASE_URL}${currentMsg.media_data}`;
+      const remoteUrl = resolveDisplayUri(currentMsg.media_data!);
       try {
-        const localPath = await downloadFile(remoteUrl);
+        const downloadedPath = await downloadFile(remoteUrl);
         if (!isCancelled) {
-          setCurrentLocalPath(localPath);
+          setCurrentLocalPath(downloadedPath);
         }
       } catch (err) {
         console.error('Failed to download media', err);
@@ -233,9 +254,7 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
         >
           {mediaMessages.map((msg, index) => {
             const isActive = index === currentIndex;
-            const remoteUrl = msg.media_data!.startsWith('http')
-              ? msg.media_data!
-              : `${BASE_URL}${msg.media_data}`;
+            const thumbUri = msg.media_data ? resolveDisplayUri(msg.media_data) : undefined;
 
             return (
               <View key={msg.id} style={styles.thumbnailWrapper}>
@@ -246,10 +265,10 @@ const ReceivedMediaModal: React.FC<ReceivedMediaModalProps> = ({
                     isActive && styles.thumbnailActive,
                   ]}
                 >
-                  {msg.message_type === 'image' && (
+                  {msg.message_type === 'image' && thumbUri && (
                     <View style={styles.imageWrapper} pointerEvents="none">
                       <Image
-                        source={{ uri: remoteUrl }}
+                        source={{ uri: thumbUri }}
                         style={styles.thumbnailImage}
                         resizeMode="cover"
                       />

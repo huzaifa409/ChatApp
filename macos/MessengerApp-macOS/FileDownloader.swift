@@ -13,8 +13,8 @@ class FileDownloader: NSObject {
       .components(separatedBy: CharacterSet(charactersIn: "/:?&="))
       .joined(separator: "_")
 
-    let cachesDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-    let mediaDir = cachesDir.appendingPathComponent("chat_media", isDirectory: true)
+    let appSupportDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    let mediaDir = appSupportDir.appendingPathComponent("chat_media", isDirectory: true)
 
     if !FileManager.default.fileExists(atPath: mediaDir.path) {
       try? FileManager.default.createDirectory(at: mediaDir, withIntermediateDirectories: true)

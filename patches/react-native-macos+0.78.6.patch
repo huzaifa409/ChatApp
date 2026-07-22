@@ -1,0 +1,18 @@
+diff --git a/node_modules/react-native-macos/React/CoreModules/RCTRedBox.mm b/node_modules/react-native-macos/React/CoreModules/RCTRedBox.mm
+index 79985f8..5abb292 100644
+--- a/node_modules/react-native-macos/React/CoreModules/RCTRedBox.mm
++++ b/node_modules/react-native-macos/React/CoreModules/RCTRedBox.mm
+@@ -122,6 +122,13 @@ - (instancetype)initWithCustomButtonTitles:(NSArray<NSString *> *)customButtonTi
+   return self;
+ }
+ 
++#if TARGET_OS_OSX // [macOS]
++- (void)loadView
++{
++  self.view = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 700, 600)];
++}
++#endif // macOS]
++
+ - (void)viewDidLoad
+ {
+   [super viewDidLoad];
